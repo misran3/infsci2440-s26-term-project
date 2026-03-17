@@ -212,3 +212,7 @@ __marimo__/
 # Design specs and implementation plans
 docs/**/plans
 docs/**/specs
+
+# Claude settings and brainstorming skills
+.claude/skills
+.claude/settings.local.json
