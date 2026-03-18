@@ -56,3 +56,13 @@ class TopicClassification:
     predicted_topic: Topic
     confidence: float
     top_features: list[str]
+
+
+@dataclass(frozen=True)
+class BayesianInsights:
+    """Probabilistic insights from Bayesian Network."""
+    topic: Topic
+    p_positive_given_topic: float
+    p_negative_given_topic: float
+    p_high_rating_given_positive: float  # P(4-5 stars | positive)
+    p_low_rating_given_negative: float   # P(1-2 stars | negative)

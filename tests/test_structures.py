@@ -1,6 +1,9 @@
 """Tests for shared data structures."""
 
-from src.loaders.structures import Topic, Sentiment, Review, QueryExpansion, TopicClassification
+from src.loaders.structures import (
+    Topic, Sentiment, Review, QueryExpansion,
+    TopicClassification, BayesianInsights
+)
 
 
 def test_topic_enum_has_expected_values():
@@ -130,3 +133,19 @@ def test_topic_classification_is_frozen():
         assert False, "Should have raised FrozenInstanceError"
     except AttributeError:
         pass  # Expected
+
+
+def test_bayesian_insights_instantiation():
+    """BayesianInsights can be instantiated with all probability fields."""
+    insights = BayesianInsights(
+        topic=Topic.PERFORMANCE,
+        p_positive_given_topic=0.32,
+        p_negative_given_topic=0.68,
+        p_high_rating_given_positive=0.85,
+        p_low_rating_given_negative=0.75
+    )
+    assert insights.topic == Topic.PERFORMANCE
+    assert insights.p_positive_given_topic == 0.32
+    assert insights.p_negative_given_topic == 0.68
+    assert insights.p_high_rating_given_positive == 0.85
+    assert insights.p_low_rating_given_negative == 0.75
