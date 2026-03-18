@@ -1,0 +1,79 @@
+# scripts/prepare_all_data.py
+"""Run all data preparation scripts in sequence."""
+
+import sys
+from pathlib import Path
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.config import DATA
+
+
+def main():
+    """Run complete data preparation pipeline."""
+    print("=" * 60)
+    print("DATA PREPARATION PIPELINE")
+    print("=" * 60)
+
+    # Step 1: Download
+    print("\n[1/6] Downloading from HuggingFace...")
+    print("-" * 40)
+    from scripts.download_data import download_data
+
+    download_data()
+
+    # Step 2: Preprocess
+    print("\n[2/6] Cleaning and preprocessing...")
+    print("-" * 40)
+    from scripts.preprocess_data import preprocess_data
+
+    preprocess_data()
+
+    # Step 3: Tokenize
+    print("\n[3/6] Tokenizing sentences...")
+    print("-" * 40)
+    from scripts.tokenize_sentences import tokenize_sentences
+
+    tokenize_sentences()
+
+    # Step 4: Sample
+    print("\n[4/6] Creating sample dataset...")
+    print("-" * 40)
+    from scripts.create_sample import create_sample
+
+    create_sample()
+
+    # Step 5: Label
+    print("\n[5/6] Auto-labeling reviews...")
+    print("-" * 40)
+    from scripts.label_training_data import label_training_data
+
+    label_training_data()
+
+    # Step 6: Validate
+    print("\n[6/6] Validating outputs...")
+    print("-" * 40)
+    from scripts.validate_data import validate_data
+
+    success = validate_data()
+
+    # Final status
+    print("\n" + "=" * 60)
+    if success:
+        print("DATA PREPARATION COMPLETE")
+        print("=" * 60)
+        print("\nNext steps:")
+        print(f"  1. Open {DATA.curated_labels} in a spreadsheet")
+        print("  2. Fill in the 'verified_topic' column")
+        print("  3. Save the file")
+        print("  4. Run model training scripts")
+    else:
+        print("DATA PREPARATION FAILED")
+        print("=" * 60)
+        print("\nReview errors above and fix before proceeding.")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
