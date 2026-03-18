@@ -47,3 +47,12 @@ class QueryExpansion:
     original_query: str
     expanded_terms: list[str]
     beam_paths: list[dict[str, Any]]  # [{"path": [...], "score": 0.9}, ...]
+
+
+@dataclass(frozen=True)
+class TopicClassification:
+    """Result of Naive Bayes classification."""
+    review_id: str
+    predicted_topic: Topic
+    confidence: float
+    top_features: list[str]

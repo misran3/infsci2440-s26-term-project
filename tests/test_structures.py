@@ -1,6 +1,6 @@
 """Tests for shared data structures."""
 
-from src.loaders.structures import Topic, Sentiment, Review, QueryExpansion
+from src.loaders.structures import Topic, Sentiment, Review, QueryExpansion, TopicClassification
 
 
 def test_topic_enum_has_expected_values():
@@ -101,3 +101,32 @@ def test_query_expansion_is_frozen():
         assert False, "Should have raised FrozenInstanceError"
     except AttributeError:
         pass  # Expected - dataclass is frozen
+
+
+def test_topic_classification_instantiation():
+    """TopicClassification can be instantiated with all fields."""
+    classification = TopicClassification(
+        review_id="R001",
+        predicted_topic=Topic.PERFORMANCE,
+        confidence=0.85,
+        top_features=["crash", "slow", "bug"]
+    )
+    assert classification.review_id == "R001"
+    assert classification.predicted_topic == Topic.PERFORMANCE
+    assert classification.confidence == 0.85
+    assert classification.top_features == ["crash", "slow", "bug"]
+
+
+def test_topic_classification_is_frozen():
+    """TopicClassification is immutable."""
+    classification = TopicClassification(
+        review_id="R001",
+        predicted_topic=Topic.FEATURES,
+        confidence=0.9,
+        top_features=[]
+    )
+    try:
+        classification.confidence = 0.5
+        assert False, "Should have raised FrozenInstanceError"
+    except AttributeError:
+        pass  # Expected
