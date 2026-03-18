@@ -67,3 +67,14 @@ def mock_classify(reviews: list[Review]) -> list[TopicClassification]:
         )
         for r in reviews
     ]
+
+
+def mock_bayesian_query(topic: Topic) -> BayesianInsights:
+    """Mock Bayesian network query."""
+    return BayesianInsights(
+        topic=topic,
+        p_positive_given_topic=0.32,
+        p_negative_given_topic=0.68,
+        p_high_rating_given_positive=0.85,
+        p_low_rating_given_negative=0.75,
+    )

@@ -109,3 +109,28 @@ def test_mock_classify_has_valid_confidence():
     result = mock_classify(MOCK_REVIEWS)
     for classification in result:
         assert 0 <= classification.confidence <= 1
+
+
+from src.mocks import mock_bayesian_query
+from src.loaders.structures import BayesianInsights
+
+
+def test_mock_bayesian_query_returns_insights():
+    """mock_bayesian_query returns BayesianInsights instance."""
+    result = mock_bayesian_query(Topic.PERFORMANCE)
+    assert isinstance(result, BayesianInsights)
+
+
+def test_mock_bayesian_query_preserves_topic():
+    """mock_bayesian_query uses provided topic."""
+    result = mock_bayesian_query(Topic.USABILITY)
+    assert result.topic == Topic.USABILITY
+
+
+def test_mock_bayesian_query_has_valid_probabilities():
+    """mock_bayesian_query returns probabilities between 0 and 1."""
+    result = mock_bayesian_query(Topic.FEATURES)
+    assert 0 <= result.p_positive_given_topic <= 1
+    assert 0 <= result.p_negative_given_topic <= 1
+    assert 0 <= result.p_high_rating_given_positive <= 1
+    assert 0 <= result.p_low_rating_given_negative <= 1
