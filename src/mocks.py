@@ -99,3 +99,13 @@ def mock_hmm_analyze(review: Review) -> SentimentSequence:
             "neg_to_neg": 0.5
         }
     )
+
+
+def mock_llm_summarize(result: PipelineResult) -> str:
+    """Mock LLM summarization."""
+    return (
+        f"Found {len(result.filtered_reviews)} reviews about "
+        f"{result.bayesian_insights.topic.value}. "
+        f"{result.bayesian_insights.p_negative_given_topic * 100:.0f}% "
+        f"express negative sentiment."
+    )

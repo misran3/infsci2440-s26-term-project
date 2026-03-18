@@ -167,3 +167,73 @@ def test_mock_hmm_analyze_has_transitions():
     result = mock_hmm_analyze(review)
     assert isinstance(result.transitions, dict)
     assert len(result.transitions) > 0
+
+
+from src.mocks import (
+    MOCK_REVIEWS, mock_beam_search, mock_tfidf_retrieve,
+    mock_classify, mock_bayesian_query, mock_hmm_analyze, mock_llm_summarize
+)
+from src.loaders.structures import (
+    Review, QueryExpansion, TopicClassification,
+    BayesianInsights, SentimentSequence, PipelineResult, Topic, Sentiment
+)
+
+
+def test_mock_llm_summarize_returns_string():
+    """mock_llm_summarize returns a string summary."""
+    # Build minimal PipelineResult
+    expansion = QueryExpansion(
+        original_query="test",
+        expanded_terms=["test"],
+        beam_paths=[]
+    )
+    insights = BayesianInsights(
+        topic=Topic.PERFORMANCE,
+        p_positive_given_topic=0.3,
+        p_negative_given_topic=0.7,
+        p_high_rating_given_positive=0.8,
+        p_low_rating_given_negative=0.8
+    )
+    result = PipelineResult(
+        query="test",
+        expansion=expansion,
+        candidate_reviews=[],
+        filtered_reviews=MOCK_REVIEWS[:2],
+        topic_classifications=[],
+        bayesian_insights=insights,
+        sentiment_sequences=[],
+        llm_summary=""
+    )
+
+    summary = mock_llm_summarize(result)
+    assert isinstance(summary, str)
+    assert len(summary) > 0
+
+
+def test_mock_llm_summarize_includes_review_count():
+    """mock_llm_summarize mentions number of reviews."""
+    expansion = QueryExpansion(
+        original_query="test",
+        expanded_terms=["test"],
+        beam_paths=[]
+    )
+    insights = BayesianInsights(
+        topic=Topic.PERFORMANCE,
+        p_positive_given_topic=0.3,
+        p_negative_given_topic=0.7,
+        p_high_rating_given_positive=0.8,
+        p_low_rating_given_negative=0.8
+    )
+    result = PipelineResult(
+        query="test",
+        expansion=expansion,
+        candidate_reviews=[],
+        filtered_reviews=MOCK_REVIEWS[:2],
+        topic_classifications=[],
+        bayesian_insights=insights,
+        sentiment_sequences=[],
+        llm_summary=""
+    )
+
+    summary = mock_llm_summarize(result)
+    assert "2" in summary  # 2 filtered reviews
