@@ -2,7 +2,7 @@
 
 from src.loaders.structures import (
     Topic, Sentiment, Review, QueryExpansion,
-    TopicClassification, BayesianInsights, SentimentSequence
+    TopicClassification, BayesianInsights, SentimentSequence, PipelineResult
 )
 
 
@@ -163,3 +163,55 @@ def test_sentiment_sequence_instantiation():
     assert len(sequence.sentences) == 2
     assert sequence.sentiment_states == [Sentiment.POSITIVE, Sentiment.NEGATIVE]
     assert sequence.transitions["pos_to_neg"] == 0.25
+
+
+def test_pipeline_result_instantiation():
+    """PipelineResult aggregates all component outputs."""
+    review = Review(
+        review_id="R001",
+        text="Test review",
+        rating=3,
+        title="Test",
+        product_id="P001"
+    )
+    expansion = QueryExpansion(
+        original_query="test",
+        expanded_terms=["test"],
+        beam_paths=[]
+    )
+    classification = TopicClassification(
+        review_id="R001",
+        predicted_topic=Topic.FEATURES,
+        confidence=0.8,
+        top_features=["feature"]
+    )
+    insights = BayesianInsights(
+        topic=Topic.FEATURES,
+        p_positive_given_topic=0.5,
+        p_negative_given_topic=0.5,
+        p_high_rating_given_positive=0.8,
+        p_low_rating_given_negative=0.8
+    )
+    sequence = SentimentSequence(
+        review_id="R001",
+        sentences=["Test review"],
+        sentiment_states=[Sentiment.NEUTRAL],
+        transitions={}
+    )
+
+    result = PipelineResult(
+        query="test",
+        expansion=expansion,
+        candidate_reviews=[review],
+        filtered_reviews=[review],
+        topic_classifications=[classification],
+        bayesian_insights=insights,
+        sentiment_sequences=[sequence],
+        llm_summary="Test summary"
+    )
+
+    assert result.query == "test"
+    assert result.expansion.original_query == "test"
+    assert len(result.candidate_reviews) == 1
+    assert len(result.filtered_reviews) == 1
+    assert result.llm_summary == "Test summary"

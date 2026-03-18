@@ -75,3 +75,16 @@ class SentimentSequence:
     sentences: list[str]
     sentiment_states: list[Sentiment]
     transitions: dict[str, float]  # {"pos_to_neg": 0.25, ...}
+
+
+@dataclass(frozen=True)
+class PipelineResult:
+    """Final result passed to LLM and UI."""
+    query: str
+    expansion: QueryExpansion
+    candidate_reviews: list[Review]
+    filtered_reviews: list[Review]
+    topic_classifications: list[TopicClassification]
+    bayesian_insights: BayesianInsights
+    sentiment_sequences: list[SentimentSequence]
+    llm_summary: str
