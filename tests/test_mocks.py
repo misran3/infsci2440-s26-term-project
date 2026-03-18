@@ -134,3 +134,36 @@ def test_mock_bayesian_query_has_valid_probabilities():
     assert 0 <= result.p_negative_given_topic <= 1
     assert 0 <= result.p_high_rating_given_positive <= 1
     assert 0 <= result.p_low_rating_given_negative <= 1
+
+
+from src.mocks import mock_hmm_analyze
+from src.loaders.structures import SentimentSequence, Sentiment
+
+
+def test_mock_hmm_analyze_returns_sequence():
+    """mock_hmm_analyze returns SentimentSequence instance."""
+    review = MOCK_REVIEWS[0]
+    result = mock_hmm_analyze(review)
+    assert isinstance(result, SentimentSequence)
+
+
+def test_mock_hmm_analyze_matches_review_id():
+    """mock_hmm_analyze uses correct review_id."""
+    review = MOCK_REVIEWS[0]
+    result = mock_hmm_analyze(review)
+    assert result.review_id == review.review_id
+
+
+def test_mock_hmm_analyze_has_states_for_each_sentence():
+    """mock_hmm_analyze returns one state per sentence."""
+    review = MOCK_REVIEWS[0]  # Has 2 sentences
+    result = mock_hmm_analyze(review)
+    assert len(result.sentiment_states) == len(result.sentences)
+
+
+def test_mock_hmm_analyze_has_transitions():
+    """mock_hmm_analyze includes transition probabilities."""
+    review = MOCK_REVIEWS[0]
+    result = mock_hmm_analyze(review)
+    assert isinstance(result.transitions, dict)
+    assert len(result.transitions) > 0

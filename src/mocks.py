@@ -78,3 +78,24 @@ def mock_bayesian_query(topic: Topic) -> BayesianInsights:
         p_high_rating_given_positive=0.85,
         p_low_rating_given_negative=0.75,
     )
+
+
+def mock_hmm_analyze(review: Review) -> SentimentSequence:
+    """Mock HMM sentiment analysis."""
+    sentences = review.sentences or [review.text]
+    # Alternate sentiments for demo
+    states = [
+        Sentiment.NEGATIVE if i % 2 == 0 else Sentiment.POSITIVE
+        for i in range(len(sentences))
+    ]
+    return SentimentSequence(
+        review_id=review.review_id,
+        sentences=sentences,
+        sentiment_states=states,
+        transitions={
+            "pos_to_neg": 0.3,
+            "neg_to_pos": 0.5,
+            "pos_to_pos": 0.7,
+            "neg_to_neg": 0.5
+        }
+    )
