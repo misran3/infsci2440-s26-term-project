@@ -15,3 +15,10 @@ class Topic(str, Enum):
     SUPPORT = "support"
     COMPATIBILITY = "compatibility"
     OTHER = "other"
+
+
+class Sentiment(str, Enum):
+    """Sentiment states."""
+    POSITIVE = "positive"
+    NEGATIVE = "negative"
+    NEUTRAL = "neutral"
