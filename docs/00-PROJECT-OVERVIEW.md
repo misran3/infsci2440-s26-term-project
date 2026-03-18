@@ -286,6 +286,7 @@ survey-analysis-agent/
 ├── .gitignore
 ├── pyproject.toml                # Dependencies and project config
 ├── uv.lock                       # Lock file (commit this)
+├── app.py                        # Streamlit web interface
 ├── README.md
 │
 ├── data/
@@ -301,10 +302,10 @@ survey-analysis-agent/
 ├── src/
 │   ├── __init__.py
 │   │
-│   ├── data/                     # Data loading and structures
+│   ├── loaders/                  # Data loading and structures
 │   │   ├── __init__.py
-│   │   ├── loader.py             # Load Amazon Reviews dataset
-│   │   └── structures.py         # Dataclasses (Review, QueryExpansion, etc.)
+│   │   ├── loader.py             # Load reviews from CSV files
+│   │   └── structures.py         # Data structures for the pipeline
 │   │
 │   ├── utils/                    # Shared utilities
 │   │   ├── __init__.py
@@ -318,8 +319,7 @@ survey-analysis-agent/
 │   │
 │   ├── classification/           # Topic classification & UI [Person 2]
 │   │   ├── __init__.py
-│   │   ├── naive_bayes.py        # TopicClassifier class
-│   │   └── streamlit_app.py      # Streamlit web UI
+│   │   └── naive_bayes.py        # TopicClassifier class
 │   │
 │   ├── reasoning/                # Probabilistic reasoning & LLM [Person 3]
 │   │   ├── __init__.py
@@ -331,8 +331,12 @@ survey-analysis-agent/
 │   └── mocks.py                  # All mock implementations for testing
 │
 ├── scripts/
-│   ├── train_models.py           # Train and save all models
-│   └── download_data.py          # Download dataset from HuggingFace
+│   ├── download_data.py          # Download Amazon Reviews dataset
+│   ├── preprocess_data.py        # Clean and preprocess reviews
+│   ├── tokenize_sentences.py     # Pre-tokenize reviews into sentences
+│   ├── create_sample.py          # Create balanced sample dataset
+│   ├── label_training_data.py    # Auto-label reviews for training
+│   └── train_models.py           # Train and save all models
 │
 ├── tests/
 │   ├── conftest.py               # Pytest fixtures
@@ -343,10 +347,6 @@ survey-analysis-agent/
 │   ├── test_hmm.py
 │   ├── test_llm.py
 │   └── test_pipeline.py          # Integration tests
-│
-├── .streamlit/                   # Streamlit configuration
-│   ├── config.toml
-│   └── secrets.toml.example
 │
 └── docs/                         # Design documentation
     ├── 00-PROJECT-OVERVIEW.md
@@ -362,8 +362,8 @@ survey-analysis-agent/
 ### Create Structure Command
 
 ```bash
-mkdir -p src/{data,utils,search,classification,reasoning} tests scripts models data .streamlit docs
-touch src/__init__.py src/data/__init__.py src/utils/__init__.py
+mkdir -p src/{loaders,utils,search,classification,reasoning} tests scripts models data docs
+touch src/__init__.py src/loaders/__init__.py src/utils/__init__.py
 touch src/search/__init__.py src/classification/__init__.py src/reasoning/__init__.py
 ```
 
