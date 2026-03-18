@@ -32,3 +32,15 @@ MOCK_REVIEWS = [
         sentences=["Price is too high for what you get.", "Support was helpful though."]
     ),
 ]
+
+
+def mock_beam_search(query: str) -> QueryExpansion:
+    """Mock beam search expansion."""
+    return QueryExpansion(
+        original_query=query,
+        expanded_terms=[query, f"{query} issues", f"{query} problems"],
+        beam_paths=[
+            {"path": [query, f"{query} issues"], "score": 0.9},
+            {"path": [query, f"{query} problems"], "score": 0.85},
+        ]
+    )
