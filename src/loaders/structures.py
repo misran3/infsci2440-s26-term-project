@@ -22,3 +22,19 @@ class Sentiment(str, Enum):
     POSITIVE = "positive"
     NEGATIVE = "negative"
     NEUTRAL = "neutral"
+
+
+@dataclass
+class Review:
+    """Single review from the dataset."""
+    review_id: str
+    text: str
+    rating: int  # 1-5
+    title: str
+    product_id: str
+    # Added by pipeline stages:
+    topic: Topic | None = None
+    sentiment: Sentiment | None = None
+    sentiment_sequence: list[Sentiment] | None = None
+    tfidf_score: float | None = None
+    sentences: list[str] | None = None  # Pre-tokenized for HMM
