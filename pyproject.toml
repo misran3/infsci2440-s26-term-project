@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "survey-analysis-agent"
 version = "0.1.0"
@@ -13,6 +17,21 @@ dependencies = [
     "pydantic-ai>=1.69.0",
     "scikit-learn>=1.8.0",
 ]
+
+[project.scripts]
+download-data = "scripts.download_data:main"
+preprocess-data = "scripts.preprocess_data:main"
+tokenize-sentences = "scripts.tokenize_sentences:main"
+create-sample = "scripts.create_sample:main"
+label-data = "scripts.label_training_data:main"
+validate-data = "scripts.validate_data:main"
+prepare-data = "scripts.prepare_all_data:main"
+
+[tool.setuptools]
+packages = ["scripts", "src"]
+
+[tool.uv]
+package = true
 
 [dependency-groups]
 dev = [
