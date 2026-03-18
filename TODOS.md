@@ -6,12 +6,12 @@ Comprehensive task list for Survey Analysis Agent project.
 
 ## Infrastructure & Setup
 
-- [ ] Clone repository and set up project structure (see 00-PROJECT-OVERVIEW.md)
-- [ ] Install uv package manager
-- [ ] Run `uv sync` to install dependencies
+- [x] Clone repository and set up project structure (see 00-PROJECT-OVERVIEW.md)
+- [x] Install uv package manager
+- [x] Run `uv sync` to install dependencies
 - [ ] Download NLTK data (wordnet, punkt, vader_lexicon)
 - [ ] Set up .env with API keys (ANTHROPIC_API_KEY for Bedrock)
-- [ ] Create data/ directory structure
+- [x] Create data/ directory structure
 
 ---
 
@@ -28,7 +28,7 @@ Comprehensive task list for Survey Analysis Agent project.
 - [ ] Implement scripts/label_training_data.py (auto-label topics)
 - [ ] Run label_training_data.py to get labeled_reviews.csv
 - [ ] Person 2: Verify 100-review sample, target >70% accuracy
-- [ ] Implement src/loaders/structures.py with all dataclasses
+- [x] Implement src/loaders/structures.py with all dataclasses
 - [ ] Implement src/loaders/loader.py with load_reviews() function
 - [ ] Verify all CSVs load without errors
 
@@ -120,7 +120,7 @@ Comprehensive task list for Survey Analysis Agent project.
 - [ ] Write test_pipeline_happy_path
 - [ ] Write test_pipeline_empty_query
 - [ ] Write test_pipeline_no_results
-- [ ] Implement mocks.py with all mock implementations
+- [x] Implement mocks.py with all mock implementations
 - [ ] Integration testing: replace mocks with real components
 - [ ] Debug interface issues between components
 
@@ -166,21 +166,21 @@ Comprehensive task list for Survey Analysis Agent project.
 
 ## Documentation Updates (from review)
 
-- [ ] Update 01-SHARED-INTERFACES: Add tfidf_score field to Review dataclass
-- [ ] Update 01-SHARED-INTERFACES: Update LLMSummarizer default model to Bedrock
-- [ ] Update 04-PERSON3: Fix _generate_fallback_summary indentation
-- [ ] Update 04-PERSON3: Update LLMSummarizer default model to Bedrock
-- [ ] Update 05-ERROR-HANDLING: Add zero-result fallback for Naive Bayes
-- [ ] Update 06-TEST-SPECIFICATION: Add test_filter_by_topic_no_matches_returns_all
-- [ ] Update 06-TEST-SPECIFICATION: Add test_summarize_api_failure_returns_fallback
-- [ ] Create 01-DATA-PREP.md with data preparation guidance
+- [x] Update 01-SHARED-INTERFACES: Add tfidf_score field to Review dataclass
+- [x] Update 01-SHARED-INTERFACES: Update LLMSummarizer default model to Bedrock
+- [x] Update 04-PERSON3: Fix _generate_fallback_summary indentation
+- [x] Update 04-PERSON3: Update LLMSummarizer default model to Bedrock
+- [x] Update 05-ERROR-HANDLING: Add zero-result fallback for Naive Bayes
+- [x] Update 06-TEST-SPECIFICATION: Add test_filter_by_topic_no_matches_returns_all
+- [x] Update 06-TEST-SPECIFICATION: Add test_summarize_api_failure_returns_fallback
+- [x] Create 01-DATA-PREP.md with data preparation guidance
 
 ---
 
 ## Testing
 
-- [ ] Set up tests/conftest.py with fixtures
-- [ ] Run all tests: uv run pytest tests/ -v
+- [x] Set up tests/conftest.py with fixtures
+- [x] Run all tests: uv run pytest tests/ -v (37 passing)
 - [ ] Achieve passing tests for all components
 - [ ] Run coverage report: uv run pytest tests/ --cov=src
 
