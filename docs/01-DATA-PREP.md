@@ -393,13 +393,13 @@ After auto-labeling, manually verify `data/verification_sample.csv`:
 ## Data Loader Implementation
 
 ```python
-# src/data/loader.py
+# src/loaders/loader.py
 
 import pandas as pd
 import json
 from pathlib import Path
 from typing import List, Optional
-from src.data.structures import Review
+from src.loaders.structures import Review
 
 DATA_DIR = Path(__file__).parent.parent.parent / "data"
 

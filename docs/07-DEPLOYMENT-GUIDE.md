@@ -43,7 +43,7 @@ ANTHROPIC_API_KEY=sk-ant-...   # For Pydantic AI (if using Anthropic)
 uv run python scripts/train_models.py
 
 # Run Streamlit app
-uv run streamlit run src/classification/streamlit_app.py
+uv run streamlit run app.py
 
 # App will be available at http://localhost:8501
 ```
@@ -144,7 +144,7 @@ git push origin main
 2. Sign in with GitHub
 3. Click "New app"
 4. Select your repository and branch
-5. Set main file path: `src/classification/streamlit_app.py`
+5. Set main file path: `app.py`
 6. Go to "Advanced settings" → "Secrets"
 7. Paste your secrets (API keys)
 8. Click "Deploy"
@@ -159,16 +159,16 @@ git push origin main
 
 ### "No module named 'src'"
 
-Add to the top of `streamlit_app.py`:
+Add to the top of `app.py`:
 ```python
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
 ```
 
 ### "NLTK data not found"
 
-Add to `streamlit_app.py`:
+Add to `app.py`:
 ```python
 import nltk
 nltk.download('wordnet', quiet=True)

@@ -327,11 +327,11 @@ Provides a web interface for users to:
 ### Implementation
 
 ```python
-# src/classification/streamlit_app.py
+# app.py
 
 import streamlit as st
 from src.pipeline import SurveyAnalysisPipeline
-from src.data.loader import load_reviews
+from src.loaders.loader import load_reviews
 
 # Page config
 st.set_page_config(
@@ -443,7 +443,7 @@ def parse_rating_filter(filter_str):
 ### Running Locally
 ```bash
 cd project
-streamlit run src/classification/streamlit_app.py
+streamlit run app.py
 ```
 
 ### Evaluation Metrics (1-3)

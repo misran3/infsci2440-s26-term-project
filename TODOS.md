@@ -28,8 +28,8 @@ Comprehensive task list for Survey Analysis Agent project.
 - [ ] Implement scripts/label_training_data.py (auto-label topics)
 - [ ] Run label_training_data.py to get labeled_reviews.csv
 - [ ] Person 2: Verify 100-review sample, target >70% accuracy
-- [ ] Implement src/data/structures.py with all dataclasses
-- [ ] Implement src/data/loader.py with load_reviews() function
+- [ ] Implement src/loaders/structures.py with all dataclasses
+- [ ] Implement src/loaders/loader.py with load_reviews() function
 - [ ] Verify all CSVs load without errors
 
 ---
@@ -66,7 +66,7 @@ Comprehensive task list for Survey Analysis Agent project.
 - [ ] Write test_classifier_predicts_correct_topic
 - [ ] Write test_classifier_handles_empty_input
 - [ ] Write test_filter_by_topic_no_matches_returns_all (NEW)
-- [ ] Create Streamlit app skeleton in classification/streamlit_app.py
+- [ ] Create Streamlit app skeleton in app.py (at root)
 - [ ] Implement query input with search button
 - [ ] Implement optional filters (topic, rating, sentiment)
 - [ ] Display Query Expansion section (beam search visualization)
