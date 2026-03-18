@@ -209,6 +209,9 @@ __marimo__/
 # Data
 /data
 
+# Models
+/models
+
 # Design specs and implementation plans
 docs/**/plans
 docs/**/specs
