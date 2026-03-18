@@ -2,7 +2,7 @@
 
 from src.loaders.structures import (
     Topic, Sentiment, Review, QueryExpansion,
-    TopicClassification, BayesianInsights
+    TopicClassification, BayesianInsights, SentimentSequence
 )
 
 
@@ -149,3 +149,17 @@ def test_bayesian_insights_instantiation():
     assert insights.p_negative_given_topic == 0.68
     assert insights.p_high_rating_given_positive == 0.85
     assert insights.p_low_rating_given_negative == 0.75
+
+
+def test_sentiment_sequence_instantiation():
+    """SentimentSequence can be instantiated with all fields."""
+    sequence = SentimentSequence(
+        review_id="R001",
+        sentences=["Product arrived fast.", "But packaging was damaged."],
+        sentiment_states=[Sentiment.POSITIVE, Sentiment.NEGATIVE],
+        transitions={"pos_to_neg": 0.25, "neg_to_pos": 0.6}
+    )
+    assert sequence.review_id == "R001"
+    assert len(sequence.sentences) == 2
+    assert sequence.sentiment_states == [Sentiment.POSITIVE, Sentiment.NEGATIVE]
+    assert sequence.transitions["pos_to_neg"] == 0.25

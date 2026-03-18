@@ -66,3 +66,12 @@ class BayesianInsights:
     p_negative_given_topic: float
     p_high_rating_given_positive: float  # P(4-5 stars | positive)
     p_low_rating_given_negative: float   # P(1-2 stars | negative)
+
+
+@dataclass(frozen=True)
+class SentimentSequence:
+    """HMM analysis of sentiment flow in a review."""
+    review_id: str
+    sentences: list[str]
+    sentiment_states: list[Sentiment]
+    transitions: dict[str, float]  # {"pos_to_neg": 0.25, ...}
