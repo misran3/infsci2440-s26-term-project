@@ -82,3 +82,30 @@ def test_mock_tfidf_retrieve_sets_tfidf_score():
     for review in result:
         assert review.tfidf_score is not None
         assert review.tfidf_score >= 0
+
+
+from src.mocks import mock_classify
+from src.loaders.structures import TopicClassification, Topic
+
+
+def test_mock_classify_returns_classifications():
+    """mock_classify returns TopicClassification for each review."""
+    reviews = MOCK_REVIEWS[:2]
+    result = mock_classify(reviews)
+    assert len(result) == len(reviews)
+    assert all(isinstance(c, TopicClassification) for c in result)
+
+
+def test_mock_classify_matches_review_ids():
+    """mock_classify uses correct review_ids."""
+    reviews = MOCK_REVIEWS[:2]
+    result = mock_classify(reviews)
+    for i, classification in enumerate(result):
+        assert classification.review_id == reviews[i].review_id
+
+
+def test_mock_classify_has_valid_confidence():
+    """mock_classify returns valid confidence scores."""
+    result = mock_classify(MOCK_REVIEWS)
+    for classification in result:
+        assert 0 <= classification.confidence <= 1

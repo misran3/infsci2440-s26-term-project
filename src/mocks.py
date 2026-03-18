@@ -54,3 +54,16 @@ def mock_tfidf_retrieve(terms: list[str], top_k: int = 10) -> list[Review]:
     for i, r in enumerate(reviews):
         r.tfidf_score = 1.0 - (i * 0.1)  # Descending scores
     return reviews[:top_k]
+
+
+def mock_classify(reviews: list[Review]) -> list[TopicClassification]:
+    """Mock topic classification."""
+    return [
+        TopicClassification(
+            review_id=r.review_id,
+            predicted_topic=Topic.PERFORMANCE,
+            confidence=0.85,
+            top_features=["crash", "slow", "bug"]
+        )
+        for r in reviews
+    ]
