@@ -58,3 +58,27 @@ def test_mock_beam_search_has_beam_paths():
     assert len(result.beam_paths) > 0
     assert "path" in result.beam_paths[0]
     assert "score" in result.beam_paths[0]
+
+
+from src.mocks import mock_tfidf_retrieve
+
+
+def test_mock_tfidf_retrieve_returns_reviews():
+    """mock_tfidf_retrieve returns list of Review instances."""
+    result = mock_tfidf_retrieve(["test"], top_k=10)
+    assert isinstance(result, list)
+    assert all(isinstance(r, Review) for r in result)
+
+
+def test_mock_tfidf_retrieve_respects_top_k():
+    """mock_tfidf_retrieve limits results to top_k."""
+    result = mock_tfidf_retrieve(["test"], top_k=2)
+    assert len(result) <= 2
+
+
+def test_mock_tfidf_retrieve_sets_tfidf_score():
+    """mock_tfidf_retrieve assigns tfidf_score to reviews."""
+    result = mock_tfidf_retrieve(["test"], top_k=10)
+    for review in result:
+        assert review.tfidf_score is not None
+        assert review.tfidf_score >= 0

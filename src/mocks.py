@@ -1,5 +1,7 @@
 """Mock implementations for testing."""
 
+import copy
+
 from src.loaders.structures import (
     Topic, Sentiment, Review, QueryExpansion,
     TopicClassification, BayesianInsights, SentimentSequence, PipelineResult
@@ -44,3 +46,11 @@ def mock_beam_search(query: str) -> QueryExpansion:
             {"path": [query, f"{query} problems"], "score": 0.85},
         ]
     )
+
+
+def mock_tfidf_retrieve(terms: list[str], top_k: int = 10) -> list[Review]:
+    """Mock TF-IDF retrieval."""
+    reviews = [copy.copy(r) for r in MOCK_REVIEWS]
+    for i, r in enumerate(reviews):
+        r.tfidf_score = 1.0 - (i * 0.1)  # Descending scores
+    return reviews[:top_k]
