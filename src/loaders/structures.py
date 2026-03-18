@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class Topic(str, Enum):
@@ -38,3 +39,11 @@ class Review:
     sentiment_sequence: list[Sentiment] | None = None
     tfidf_score: float | None = None
     sentences: list[str] | None = None  # Pre-tokenized for HMM
+
+
+@dataclass(frozen=True)
+class QueryExpansion:
+    """Result of beam search query expansion."""
+    original_query: str
+    expanded_terms: list[str]
+    beam_paths: list[dict[str, Any]]  # [{"path": [...], "score": 0.9}, ...]

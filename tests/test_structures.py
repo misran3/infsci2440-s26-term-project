@@ -1,6 +1,6 @@
 """Tests for shared data structures."""
 
-from src.loaders.structures import Topic, Sentiment, Review
+from src.loaders.structures import Topic, Sentiment, Review, QueryExpansion
 
 
 def test_topic_enum_has_expected_values():
@@ -75,3 +75,29 @@ def test_review_is_mutable():
     review.sentiment = Sentiment.POSITIVE
     assert review.topic == Topic.FEATURES
     assert review.sentiment == Sentiment.POSITIVE
+
+
+def test_query_expansion_instantiation():
+    """QueryExpansion can be instantiated with all fields."""
+    expansion = QueryExpansion(
+        original_query="shipping",
+        expanded_terms=["shipping", "delivery", "arrived"],
+        beam_paths=[{"path": ["shipping", "delivery"], "score": 0.9}]
+    )
+    assert expansion.original_query == "shipping"
+    assert expansion.expanded_terms == ["shipping", "delivery", "arrived"]
+    assert expansion.beam_paths[0]["score"] == 0.9
+
+
+def test_query_expansion_is_frozen():
+    """QueryExpansion is immutable."""
+    expansion = QueryExpansion(
+        original_query="test",
+        expanded_terms=["test"],
+        beam_paths=[]
+    )
+    try:
+        expansion.original_query = "modified"
+        assert False, "Should have raised FrozenInstanceError"
+    except AttributeError:
+        pass  # Expected - dataclass is frozen
