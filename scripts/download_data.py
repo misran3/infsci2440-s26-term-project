@@ -6,7 +6,7 @@ from pathlib import Path
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from datasets import load_dataset
+from huggingface_hub import hf_hub_download
 import pandas as pd
 
 from src.config import DATA, DATASET
@@ -19,19 +19,18 @@ def download_data() -> pd.DataFrame:
     Returns:
         DataFrame with downloaded reviews.
     """
-    print(f"Downloading dataset: {DATASET.name} ({DATASET.subset})...")
+    print(f"Downloading dataset: {DATASET.repo_id} ({DATASET.filename})...")
     print("This may take several minutes on first run.")
 
-    # Load dataset from HuggingFace
-    dataset = load_dataset(
-        DATASET.name,
-        DATASET.subset,
-        split=DATASET.split,
-        trust_remote_code=DATASET.trust_remote_code,
+    # Download JSONL file from HuggingFace Hub
+    file_path = hf_hub_download(
+        repo_id=DATASET.repo_id,
+        filename=DATASET.filename,
+        repo_type="dataset",
     )
 
-    # Convert to DataFrame
-    df = dataset.to_pandas()
+    # Load JSONL into DataFrame
+    df = pd.read_json(file_path, lines=True)
     print(f"Downloaded {len(df)} reviews.")
 
     # Select and rename columns
