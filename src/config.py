@@ -25,10 +25,8 @@ class DataConfig:
 class DatasetConfig:
     """HuggingFace dataset settings."""
 
-    name: str = "McAuley-Lab/Amazon-Reviews-2023"
-    subset: str = "raw_review_Software"
-    split: str = "full"
-    trust_remote_code: bool = True
+    repo_id: str = "McAuley-Lab/Amazon-Reviews-2023"
+    filename: str = "raw/review_categories/Software.jsonl"
 
 
 @dataclass(frozen=True)
