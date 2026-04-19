@@ -41,3 +41,33 @@ An Intelligent Agent for Probabilistic and Context-Aware Analysis of Free-Text S
 ├── models/                         # Trained model files (.pkl)
 └── data/                           # Dataset files (.csv)
 ```
+
+## Data Preparation
+
+Download and prepare the Amazon Reviews dataset:
+
+```bash
+# Run full pipeline (skips already-completed steps)
+uv run prepare-data
+
+# Force re-run all steps
+uv run prepare-data --force
+```
+
+Individual scripts:
+```bash
+uv run download-data      # Download from HuggingFace (~5 min)
+uv run preprocess-data    # Clean and filter
+uv run tokenize-sentences # Split into sentences
+uv run create-sample      # Create balanced 100-review sample
+uv run label-data         # Auto-label topics
+uv run validate-data      # Verify outputs
+```
+
+Output files in `data/`:
+- `amazon_reviews_software_raw.csv` - Raw download
+- `amazon_reviews_software_clean.csv` - Cleaned
+- `amazon_reviews_software.csv` - Main corpus with sentences
+- `sample_reviews.csv` - 100 balanced samples
+- `labeled_reviews.csv` - Auto-labeled corpus
+- `curated_labels.csv` - For human curation
