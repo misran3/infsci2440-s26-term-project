@@ -132,3 +132,21 @@ def test_label_training_data_skips_when_file_exists(temp_data_dir, capsys):
     captured = capsys.readouterr()
     assert "Skipping" in captured.out or "already exists" in captured.out
     assert result is None
+
+
+def test_prepare_all_data_accepts_force_flag():
+    """prepare_all_data main should accept --force argument."""
+    import subprocess
+    import sys
+
+    # Just test that --help shows the force flag (doesn't actually run pipeline)
+    result = subprocess.run(
+        [sys.executable, "-m", "scripts.prepare_all_data", "--help"],
+        capture_output=True,
+        text=True,
+        cwd=PROJECT_ROOT,
+    )
+    # Should have proper argparse help with usage: and optional arguments:
+    assert result.returncode == 0
+    assert "usage:" in result.stdout or "usage:" in result.stderr
+    assert "--force" in result.stdout or "--force" in result.stderr
