@@ -1,6 +1,7 @@
 # scripts/create_sample.py
 """Create balanced sample dataset for testing."""
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -15,19 +16,27 @@ from src.config import DATA, SAMPLE
 def create_sample(
     input_path: Path | None = None,
     output_path: Path | None = None,
-) -> pd.DataFrame:
+    force: bool = False,
+) -> pd.DataFrame | None:
     """
     Create stratified sample dataset.
 
     Args:
         input_path: Input CSV path. Defaults to main_corpus.
         output_path: Output CSV path. Defaults to sample_reviews.
+        force: If True, re-create even if output exists.
 
     Returns:
-        Sample DataFrame.
+        Sample DataFrame or None if skipped.
     """
     input_path = input_path or DATA.main_corpus
     output_path = output_path or DATA.sample_reviews
+
+    # Skip if output exists and force is False
+    if output_path.exists() and not force:
+        print(f"Skipping sample: {output_path} already exists")
+        print("  Use --force to re-create")
+        return None
 
     print(f"Loading {input_path}...")
     df = pd.read_csv(input_path)
@@ -64,7 +73,15 @@ def create_sample(
 
 def main():
     """Entry point for script."""
-    create_sample()
+    parser = argparse.ArgumentParser(description="Create balanced sample dataset")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-create sample even if it already exists",
+    )
+    args = parser.parse_args()
+
+    create_sample(force=args.force)
 
 
 if __name__ == "__main__":

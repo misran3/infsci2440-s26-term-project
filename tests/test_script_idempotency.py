@@ -90,3 +90,21 @@ def test_tokenize_sentences_skips_when_file_exists(temp_data_dir, capsys):
     captured = capsys.readouterr()
     assert "Skipping" in captured.out or "already exists" in captured.out
     assert result is None
+
+
+def test_create_sample_skips_when_file_exists(temp_data_dir, capsys):
+    """create_sample should skip when sample file exists."""
+    from scripts.create_sample import create_sample
+
+    # Create both input and output files
+    corpus_file = temp_data_dir / "corpus.csv"
+    corpus_file.write_text("review_id,text,rating,title,product_id\nR000001,Great software,5,Good,P001\n")
+    sample_file = temp_data_dir / "sample.csv"
+    sample_file.write_text("review_id,text,rating,title,product_id\nR000001,Great software,5,Good,P001\n")
+
+    # Call without force - should skip
+    result = create_sample(input_path=corpus_file, output_path=sample_file, force=False)
+
+    captured = capsys.readouterr()
+    assert "Skipping" in captured.out or "already exists" in captured.out
+    assert result is None
