@@ -94,6 +94,30 @@ uv run prepare-data
 
 ---
 
+## Idempotency
+
+Scripts skip processing when output files already exist:
+
+```bash
+# Second run skips all steps
+uv run prepare-data
+# Output: "Skipping download: data/amazon_reviews_software_raw.csv already exists"
+
+# Force re-run all steps
+uv run prepare-data --force
+```
+
+Individual scripts also support `--force`:
+```bash
+uv run download-data --force
+uv run preprocess-data --force
+uv run tokenize-sentences --force
+uv run create-sample --force
+uv run label-data --force
+```
+
+---
+
 ## Troubleshooting
 
 | Issue | Fix |
