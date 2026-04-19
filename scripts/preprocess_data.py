@@ -1,5 +1,6 @@
 """Clean and preprocess reviews."""
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -15,19 +16,26 @@ from src.config import DATA, PREPROCESS
 def preprocess_data(
     input_path: Path | None = None,
     output_path: Path | None = None,
-) -> pd.DataFrame:
+    force: bool = False,
+) -> pd.DataFrame | None:
     """
     Clean and preprocess reviews.
 
     Args:
         input_path: Input CSV path. Defaults to raw_reviews.
         output_path: Output CSV path. Defaults to clean_reviews.
+        force: If True, reprocess even if output exists.
 
     Returns:
-        Cleaned DataFrame.
+        Cleaned DataFrame, or None if skipped.
     """
     input_path = input_path or DATA.raw_reviews
     output_path = output_path or DATA.clean_reviews
+
+    if output_path.exists() and not force:
+        print(f"Skipping preprocess: {output_path} already exists")
+        print("  Use --force to re-process")
+        return None
 
     print(f"Loading {input_path}...")
     df = pd.read_csv(input_path)
@@ -71,7 +79,11 @@ def preprocess_data(
 
 def main():
     """Entry point for script."""
-    preprocess_data()
+    parser = argparse.ArgumentParser(description="Clean and preprocess reviews")
+    parser.add_argument("--force", action="store_true", help="Re-process even if output exists")
+    args = parser.parse_args()
+
+    preprocess_data(force=args.force)
 
 
 if __name__ == "__main__":

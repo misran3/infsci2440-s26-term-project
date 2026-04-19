@@ -53,3 +53,22 @@ def test_download_data_runs_with_force_flag(fake_raw_csv, monkeypatch):
     # This test would require mocking hf_hub_download, skip for now
     # The key behavior is tested in test_download_data_skips_when_file_exists
     pass
+
+
+def test_preprocess_data_skips_when_file_exists(temp_data_dir, capsys, monkeypatch):
+    """preprocess_data should skip when clean file exists."""
+    from scripts.preprocess_data import preprocess_data
+    from src import config
+
+    # Create both raw and clean files
+    raw_file = temp_data_dir / "raw.csv"
+    raw_file.write_text("review_id,text,rating,title,product_id\nR000001,Great software,5,Good,P001\n")
+    clean_file = temp_data_dir / "clean.csv"
+    clean_file.write_text("review_id,text,rating,title,product_id\nR000001,Great software,5,Good,P001\n")
+
+    # Call without force - should skip
+    result = preprocess_data(input_path=raw_file, output_path=clean_file, force=False)
+
+    captured = capsys.readouterr()
+    assert "Skipping" in captured.out or "already exists" in captured.out
+    assert result is None
