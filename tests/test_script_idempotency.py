@@ -108,3 +108,27 @@ def test_create_sample_skips_when_file_exists(temp_data_dir, capsys):
     captured = capsys.readouterr()
     assert "Skipping" in captured.out or "already exists" in captured.out
     assert result is None
+
+
+def test_label_training_data_skips_when_file_exists(temp_data_dir, capsys):
+    """label_training_data should skip when labeled file exists."""
+    from scripts.label_training_data import label_training_data
+
+    # Create input and output files
+    corpus_file = temp_data_dir / "corpus.csv"
+    corpus_file.write_text("review_id,text,rating,title,product_id\nR000001,Great software,5,Good,P001\n")
+    labeled_file = temp_data_dir / "labeled.csv"
+    labeled_file.write_text("review_id,text,rating,title,product_id,topic_label\nR000001,Great software,5,Good,P001,features\n")
+    curated_file = temp_data_dir / "curated.csv"
+
+    # Call without force - should skip
+    result = label_training_data(
+        input_path=corpus_file,
+        output_path=labeled_file,
+        curated_path=curated_file,
+        force=False
+    )
+
+    captured = capsys.readouterr()
+    assert "Skipping" in captured.out or "already exists" in captured.out
+    assert result is None

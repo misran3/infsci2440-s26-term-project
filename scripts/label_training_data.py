@@ -1,5 +1,6 @@
 """Auto-label reviews with topics and export high-confidence samples for curation."""
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -46,7 +47,8 @@ def label_training_data(
     input_path: Path | None = None,
     output_path: Path | None = None,
     curated_path: Path | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+    force: bool = False,
+) -> tuple[pd.DataFrame, pd.DataFrame] | None:
     """
     Auto-label reviews and export high-confidence samples.
 
@@ -54,13 +56,20 @@ def label_training_data(
         input_path: Input CSV path. Defaults to main_corpus.
         output_path: Output CSV path. Defaults to labeled_reviews.
         curated_path: Curated export path. Defaults to curated_labels.
+        force: Re-run even if output exists.
 
     Returns:
-        Tuple of (labeled_df, curated_df).
+        Tuple of (labeled_df, curated_df), or None if skipped.
     """
     input_path = input_path or DATA.main_corpus
     output_path = output_path or DATA.labeled_reviews
     curated_path = curated_path or DATA.curated_labels
+
+    # Skip if output exists and not forced
+    if output_path.exists() and not force:
+        print(f"Skipping labeling: {output_path} already exists")
+        print("  Use --force to re-label")
+        return None
 
     print(f"Loading {input_path}...")
     df = pd.read_csv(input_path)
@@ -142,7 +151,17 @@ def label_training_data(
 
 def main():
     """Entry point for script."""
-    label_training_data()
+    parser = argparse.ArgumentParser(
+        description="Auto-label reviews with topics and export high-confidence samples for curation."
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-run even if output file already exists",
+    )
+    args = parser.parse_args()
+
+    label_training_data(force=args.force)
 
 
 if __name__ == "__main__":
