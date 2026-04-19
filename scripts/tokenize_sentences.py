@@ -1,5 +1,6 @@
 """Pre-tokenize reviews into sentences using NLTK."""
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -25,19 +26,27 @@ def ensure_nltk_data():
 def tokenize_sentences(
     input_path: Path | None = None,
     output_path: Path | None = None,
-) -> pd.DataFrame:
+    force: bool = False,
+) -> pd.DataFrame | None:
     """
     Pre-tokenize reviews into sentences.
 
     Args:
         input_path: Input CSV path. Defaults to clean_reviews.
         output_path: Output CSV path. Defaults to main_corpus.
+        force: If True, re-tokenize even if output exists.
 
     Returns:
-        DataFrame with sentences column added.
+        DataFrame with sentences column added, or None if skipped.
     """
     input_path = input_path or DATA.clean_reviews
     output_path = output_path or DATA.main_corpus
+
+    # Skip if output already exists and force is False
+    if output_path.exists() and not force:
+        print(f"Skipping tokenize: {output_path} already exists")
+        print("  Use --force to re-tokenize")
+        return None
 
     ensure_nltk_data()
     from nltk.tokenize import sent_tokenize
@@ -66,7 +75,15 @@ def tokenize_sentences(
 
 def main():
     """Entry point for script."""
-    tokenize_sentences()
+    parser = argparse.ArgumentParser(description="Tokenize reviews into sentences")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-tokenize even if output file exists",
+    )
+    args = parser.parse_args()
+
+    tokenize_sentences(force=args.force)
 
 
 if __name__ == "__main__":

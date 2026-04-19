@@ -72,3 +72,21 @@ def test_preprocess_data_skips_when_file_exists(temp_data_dir, capsys, monkeypat
     captured = capsys.readouterr()
     assert "Skipping" in captured.out or "already exists" in captured.out
     assert result is None
+
+
+def test_tokenize_sentences_skips_when_file_exists(temp_data_dir, capsys):
+    """tokenize_sentences should skip when corpus file exists."""
+    from scripts.tokenize_sentences import tokenize_sentences
+
+    # Create both input and output files
+    clean_file = temp_data_dir / "clean.csv"
+    clean_file.write_text("review_id,text,rating,title,product_id\nR000001,Great software. Works well.,5,Good,P001\n")
+    corpus_file = temp_data_dir / "corpus.csv"
+    corpus_file.write_text("review_id,text,rating,title,product_id,sentences,sentence_count\nR000001,Great software. Works well.,5,Good,P001,\"[\"\"Great software.\"\", \"\"Works well.\"\"]\",2\n")
+
+    # Call without force - should skip
+    result = tokenize_sentences(input_path=clean_file, output_path=corpus_file, force=False)
+
+    captured = capsys.readouterr()
+    assert "Skipping" in captured.out or "already exists" in captured.out
+    assert result is None
