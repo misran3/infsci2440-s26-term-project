@@ -71,3 +71,25 @@ Output files in `data/`:
 - `sample_reviews.csv` - 100 balanced samples
 - `labeled_reviews.csv` - Auto-labeled corpus
 - `curated_labels.csv` - For human curation
+
+## Label Curation
+
+After running `label-data`, review and verify the auto-labeled topics:
+
+```bash
+# View a batch of reviews (start_index, batch_size)
+python3 scripts/review_batch.py 0 30
+
+# After editing batch files in data/review_batches/, merge them:
+python3 scripts/merge_review_batches.py
+```
+
+Batch files are stored in `data/review_batches/` (e.g., `batch_0_29.csv`) with format:
+```csv
+index,verified_topic
+0,performance
+1,usability
+...
+```
+
+Valid topics: `performance`, `usability`, `features`, `pricing`, `support`, `compatibility`, `other`
