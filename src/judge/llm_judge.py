@@ -26,7 +26,7 @@ async def evaluate_term_relevance(
     """Evaluate semantic relevance of expanded terms."""
     agent = get_agent(TermRelevanceBatchResult, TERM_RELEVANCE_PROMPT)
     result = await agent.run(f"Query: {query}\nExpanded terms to evaluate: {terms}")
-    return result.data
+    return result.output
 
 
 async def evaluate_result_relevance(
@@ -37,4 +37,4 @@ async def evaluate_result_relevance(
     agent = get_agent(ResultRelevanceBatchResult, RESULT_RELEVANCE_PROMPT)
     formatted = "\n".join(f"- {r['review_id']}: {r['text'][:300]}" for r in results)
     result = await agent.run(f"Query: {query}\nRetrieved reviews:\n{formatted}")
-    return result.data
+    return result.output

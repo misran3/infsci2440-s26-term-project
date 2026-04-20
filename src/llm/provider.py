@@ -6,22 +6,19 @@ from pydantic_ai.models.bedrock import BedrockConverseModel
 from src.config import LLM
 
 
-def get_agent[T](result_type: type[T], system_prompt: str) -> Agent[None, T]:
+def get_agent[T](output_type: type[T], system_prompt: str) -> Agent[None, T]:
     """Create a Pydantic AI agent with Bedrock backend.
 
     Args:
-        result_type: Pydantic model for structured output.
+        output_type: Pydantic model for structured output.
         system_prompt: System prompt for the agent.
 
     Returns:
         Configured Agent instance.
     """
-    model = BedrockConverseModel(
-        model_id=LLM.model_id,
-        region_name=LLM.region,
-    )
+    model = BedrockConverseModel(model_name=LLM.model_id)
     return Agent(
         model=model,
-        result_type=result_type,
+        output_type=output_type,
         system_prompt=system_prompt,
     )
