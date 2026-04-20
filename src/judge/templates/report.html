@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report {{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        h1, h2, h3 { color: #333; }
+        .meta { color: #666; margin-bottom: 2rem; }
+        .test { border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1rem; padding: 1rem; }
+        .test-header { display: flex; justify-content: space-between; align-items: center; }
+        .test-name { font-weight: bold; }
+        .pass { color: #22863a; }
+        .fail { color: #cb2431; }
+        .relevant { background: #dcffe4; padding: 0.25rem 0.5rem; border-radius: 3px; }
+        .irrelevant { background: #ffeef0; padding: 0.25rem 0.5rem; border-radius: 3px; }
+        .judgment { margin: 0.5rem 0; padding: 0.5rem; background: #f6f8fa; border-radius: 3px; }
+        .reasoning { color: #666; font-size: 0.9rem; margin-top: 0.25rem; }
+        .details { font-size: 0.9rem; color: #666; }
+        a { color: #0066cc; }
+    </style>
+</head>
+<body>
+    <a href="/">&larr; Back to reports</a>
+    <h1>Judge Report</h1>
+    <div class="meta">
+        <p><strong>Timestamp:</strong> {{ report.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        <p><strong>Dataset:</strong> {{ report.dataset }}</p>
+        <p><strong>Reviews:</strong> {{ report.review_count }}</p>
+    </div>
+
+    <h2>Tests ({{ report.tests | length }})</h2>
+    {% for test in report.tests %}
+    <div class="test">
+        <div class="test-header">
+            <span class="test-name">{{ test.name }}</span>
+            <span>Query: <strong>{{ test.query }}</strong></span>
+        </div>
+
+        {% if test.name in ['expansion_not_empty', 'recall_improvement', 'score_ordering'] %}
+        <p class="{% if test.passed %}pass{% else %}fail{% endif %}">
+            {% if test.passed %}PASSED{% else %}FAILED{% endif %}
+        </p>
+        <p class="details">{{ test.details }}</p>
+
+        {% elif test.name == 'term_relevance' %}
+        <p><strong>Expanded terms:</strong> {{ test.expanded_terms | join(', ') }}</p>
+        <h4>Judgments:</h4>
+        {% for j in test.judgments %}
+        <div class="judgment">
+            <span class="{% if j.is_relevant %}relevant{% else %}irrelevant{% endif %}">
+                {{ j.term }}
+            </span>
+            <span>{% if j.is_relevant %}relevant{% else %}irrelevant{% endif %}</span>
+            <p class="reasoning">{{ j.reasoning }}</p>
+        </div>
+        {% endfor %}
+
+        {% elif test.name == 'result_relevance' %}
+        <h4>Results:</h4>
+        {% for j in test.results %}
+        <div class="judgment">
+            <span class="{% if j.is_relevant %}relevant{% else %}irrelevant{% endif %}">
+                {{ j.review_id }}
+            </span>
+            <span>{% if j.is_relevant %}relevant{% else %}irrelevant{% endif %}</span>
+            <p class="reasoning">{{ j.reasoning }}</p>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endfor %}
+</body>
+</html>

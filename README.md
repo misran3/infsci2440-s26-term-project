@@ -20,7 +20,8 @@ An Intelligent Agent for Probabilistic and Context-Aware Analysis of Free-Text S
 │   │   ├── logger.py
 │   │   └── errors.py
 │   ├── search/                     # Query expansion and retrieval
-│   │   ├── beam_search.py
+│   │   ├── beam_search.py          # WordNet synonym expansion via beam search
+│   │   ├── term_filter.py          # LLM-based filtering of irrelevant terms
 │   │   └── tfidf_retriever.py
 │   ├── classification/             # Topic classification
 │   │   └── naive_bayes.py
@@ -93,3 +94,40 @@ index,verified_topic
 ```
 
 Valid topics: `performance`, `usability`, `features`, `pricing`, `support`, `compatibility`, `other`
+
+## Query Expansion
+
+The search module expands user queries using WordNet synonyms and filters out irrelevant terms:
+
+```python
+from src.search import BeamSearchExpander, TermFilter
+
+expander = BeamSearchExpander(beam_width=3, max_depth=2)
+term_filter = TermFilter()
+
+# Expand "bug" using WordNet synonyms
+result = expander.expand("bug")
+# ['tease', 'badger', 'microbe', 'germ', 'bug', 'pester', ...]
+
+# Filter to software-relevant terms using Claude Haiku
+filtered = await term_filter.filter("bug", result.expanded_terms)
+# ['bug']  -- irrelevant terms like 'badger', 'germ' removed
+```
+
+### How Term Filtering Works
+
+1. **BeamSearchExpander** finds synonyms via WordNet, but many are irrelevant (e.g., "bug" → "badger", "germ")
+2. **TermFilter** uses Claude Haiku to identify software-relevant terms
+3. Results are cached in `data/term_filter_cache.json` to avoid repeated LLM calls
+
+Cache format (`term -> is_relevant`):
+```json
+{
+  "glitch": true,
+  "microbe": false,
+  "crash": true,
+  "badger": false
+}
+```
+
+Cached lookups are ~1.6µs vs ~1-2s for LLM calls.
