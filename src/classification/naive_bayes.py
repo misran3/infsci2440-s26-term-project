@@ -124,6 +124,46 @@ class TopicClassifier:
 
         return results
 
+    def save(self, path: str) -> None:
+        """
+        Save trained classifier to disk.
+
+        Args:
+            path: File path to save to.
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Cannot save unfitted classifier")
+
+        import os
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+
+        joblib.dump(
+            {
+                "vectorizer": self.vectorizer,
+                "classifier": self.classifier,
+                "is_fitted": self.is_fitted,
+            },
+            path,
+        )
+
+    @classmethod
+    def load(cls, path: str) -> "TopicClassifier":
+        """
+        Load trained classifier from disk.
+
+        Args:
+            path: File path to load from.
+
+        Returns:
+            Loaded TopicClassifier instance.
+        """
+        data = joblib.load(path)
+        instance = cls()
+        instance.vectorizer = data["vectorizer"]
+        instance.classifier = data["classifier"]
+        instance.is_fitted = data["is_fitted"]
+        return instance
+
     def get_topic_distribution(
         self, classifications: list[TopicClassification]
     ) -> dict[str, int]:
