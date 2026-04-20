@@ -47,3 +47,27 @@ def test_save_cache_creates_directory(tmp_path: Path) -> None:
     tf._save_cache()
 
     assert cache_path.exists()
+
+
+@pytest.mark.asyncio
+async def test_filter_uses_cache_and_skips_llm(temp_cache: Path) -> None:
+    """Filter returns cached terms without LLM call when all cached."""
+    cache_data = {"glitch": True, "pester": False, "bug": True}
+    temp_cache.write_text(json.dumps(cache_data))
+
+    tf = TermFilter(cache_path=temp_cache)
+    result = await tf.filter("bug", ["glitch", "pester", "bug"])
+
+    assert set(result) == {"glitch", "bug"}
+
+
+@pytest.mark.asyncio
+async def test_filter_always_includes_query_terms(temp_cache: Path) -> None:
+    """Filter always includes original query terms."""
+    cache_data = {"glitch": True, "pester": False}
+    temp_cache.write_text(json.dumps(cache_data))
+
+    tf = TermFilter(cache_path=temp_cache)
+    result = await tf.filter("bug", ["glitch", "pester", "bug"])
+
+    assert "bug" in result
