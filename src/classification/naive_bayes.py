@@ -139,6 +139,28 @@ class TopicClassifier:
         counts = Counter(c.predicted_topic.value for c in classifications)
         return dict(counts)
 
+    def detect_topic_from_query(self, query: str) -> str:
+        """
+        Infer topic from user's query using keyword matching.
+
+        Args:
+            query: User's search query.
+
+        Returns:
+            Topic string (e.g., "performance", "usability").
+        """
+        query_lower = query.lower()
+
+        scores: dict[str, int] = {topic: 0 for topic in TOPIC_KEYWORDS}
+
+        for topic, keywords in TOPIC_KEYWORDS.items():
+            for keyword in keywords:
+                if keyword in query_lower:
+                    scores[topic] += 1
+
+        best_topic = max(scores, key=lambda k: scores[k])
+        return best_topic if scores[best_topic] > 0 else "other"
+
     def filter_by_topic(
         self,
         reviews: list[Review],
