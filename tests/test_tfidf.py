@@ -56,3 +56,61 @@ def test_no_matches():
 
     results = retriever.retrieve(["xyznonexistent"])
     assert results == []
+
+
+def test_top_k_larger_than_corpus():
+    """top_k larger than corpus should return all matches."""
+    corpus = [
+        Review("1", "shipping was fast", 5, "Good", "A"),
+        Review("2", "shipping is reliable", 4, "OK", "B"),
+    ]
+    retriever = TFIDFRetriever(corpus)
+    retriever.fit()
+
+    results = retriever.retrieve(["shipping"], top_k=100)
+    assert len(results) == 2
+
+
+def test_tfidf_scores_populated():
+    """Every returned review should have tfidf_score > 0."""
+    corpus = [
+        Review("1", "shipping was fast", 5, "Good", "A"),
+        Review("2", "delivery took time", 3, "OK", "B"),
+    ]
+    retriever = TFIDFRetriever(corpus)
+    retriever.fit()
+
+    results = retriever.retrieve(["shipping", "delivery"])
+    for review in results:
+        assert review.tfidf_score is not None
+        assert review.tfidf_score > 0
+
+
+def test_results_sorted_descending():
+    """Results should be sorted by score descending."""
+    corpus = [
+        Review("1", "shipping", 5, "A", "X"),
+        Review("2", "shipping shipping shipping", 5, "B", "X"),
+        Review("3", "shipping fast", 5, "C", "X"),
+    ]
+    retriever = TFIDFRetriever(corpus)
+    retriever.fit()
+
+    results = retriever.retrieve(["shipping"])
+    scores = [r.tfidf_score for r in results]
+    assert scores == sorted(scores, reverse=True)
+
+
+def test_get_matching_terms_accuracy():
+    """get_matching_terms should correctly identify matched terms."""
+    corpus = [
+        Review("1", "shipping was fast and delivery reliable", 5, "Good", "A"),
+    ]
+    retriever = TFIDFRetriever(corpus)
+    retriever.fit()
+
+    review = corpus[0]
+    matching = retriever.get_matching_terms(review, ["shipping", "delivery", "price"])
+    assert "shipping" in matching
+    assert "delivery" in matching
+    assert "price" not in matching
