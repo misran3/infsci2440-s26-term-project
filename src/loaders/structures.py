@@ -82,6 +82,7 @@ class PipelineResult:
     """Final result passed to LLM and UI."""
     query: str
     expansion: QueryExpansion
+    filtered_terms: list[str]
     candidate_reviews: list[Review]
     filtered_reviews: list[Review]
     topic_classifications: list[TopicClassification]
