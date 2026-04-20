@@ -45,3 +45,17 @@ def test_classifier_handles_empty_input(training_reviews, training_labels):
     results = classifier.predict([])
 
     assert results == []
+
+
+def test_filter_by_topic_no_matches_returns_distribution(training_reviews, training_labels):
+    """Zero matches -> FilterResult with fallback_used=True."""
+    classifier = TopicClassifier()
+    classifier.fit(training_reviews, training_labels)
+
+    # Filter for "compatibility" which has no matches in training data
+    result = classifier.filter_by_topic(training_reviews, "compatibility")
+
+    assert result.fallback_used is True
+    assert result.filtered_reviews == []
+    assert "performance" in result.topic_distribution
+    assert result.topic_distribution["performance"] > 0

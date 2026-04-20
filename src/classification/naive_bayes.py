@@ -10,6 +10,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 
 from src.loaders.structures import (
+    FilterResult,
     Review,
     Topic,
     TopicClassification,
@@ -122,3 +123,71 @@ class TopicClassifier:
             )
 
         return results
+
+    def get_topic_distribution(
+        self, classifications: list[TopicClassification]
+    ) -> dict[str, int]:
+        """
+        Get count of reviews per topic.
+
+        Args:
+            classifications: Classification results.
+
+        Returns:
+            Dict mapping topic name to count.
+        """
+        counts = Counter(c.predicted_topic.value for c in classifications)
+        return dict(counts)
+
+    def filter_by_topic(
+        self,
+        reviews: list[Review],
+        target_topic: str,
+        min_confidence: float = 0.5,
+    ) -> FilterResult:
+        """
+        Filter reviews to those matching target topic.
+
+        Args:
+            reviews: Reviews to filter.
+            target_topic: Topic to filter for (string).
+            min_confidence: Minimum confidence threshold.
+
+        Returns:
+            FilterResult with filtered reviews and topic distribution.
+        """
+        if not reviews:
+            return FilterResult(
+                filtered_reviews=[],
+                classifications=[],
+                topic_distribution={},
+                fallback_used=False,
+            )
+
+        classifications = self.predict(reviews)
+        topic_distribution = self.get_topic_distribution(classifications)
+
+        filtered_reviews: list[Review] = []
+        filtered_classifications: list[TopicClassification] = []
+
+        try:
+            target = Topic(target_topic)
+        except ValueError:
+            target = Topic.OTHER
+
+        for review, classification in zip(reviews, classifications):
+            if (
+                classification.predicted_topic == target
+                and classification.confidence >= min_confidence
+            ):
+                filtered_reviews.append(review)
+                filtered_classifications.append(classification)
+
+        fallback_used = len(filtered_reviews) == 0 and len(reviews) > 0
+
+        return FilterResult(
+            filtered_reviews=filtered_reviews,
+            classifications=filtered_classifications,
+            topic_distribution=topic_distribution,
+            fallback_used=fallback_used,
+        )
