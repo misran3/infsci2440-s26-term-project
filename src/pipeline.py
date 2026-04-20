@@ -38,10 +38,10 @@ class SurveyAnalysisPipeline:
     def __init__(self, components: PipelineComponents) -> None:
         self.components = components
 
-    def run(
+    async def run(
         self,
         query: str,
-        topic_filter: Optional[str] = None,
+        topic_filter: str | None = None,
         min_confidence: float = 0.5,
         top_k: int = 500,
     ) -> tuple[PipelineResult, FilterResult]:
@@ -60,12 +60,20 @@ class SurveyAnalysisPipeline:
         # 1. Expand query (Person 1 - implemented)
         expansion = self.components.expander.expand(query)
 
-        # 2. TF-IDF retrieve (Person 1 - implemented)
+        # 2. Filter terms (LLM - async, optional)
+        if self.components.term_filter:
+            filtered_terms = await self.components.term_filter.filter(
+                query, expansion.expanded_terms
+            )
+        else:
+            filtered_terms = list(expansion.expanded_terms)
+
+        # 3. TF-IDF retrieve (Person 1 - implemented)
         candidates = self.components.retriever.retrieve(
-            expansion.expanded_terms, top_k=top_k
+            filtered_terms, top_k=top_k
         )
 
-        # 3. Classify + filter (Person 2)
+        # 4. Classify + filter (Person 2)
         topic = topic_filter or self.components.classifier.detect_topic_from_query(query)
         filter_result = self.components.classifier.filter_by_topic(
             candidates, topic, min_confidence
@@ -74,13 +82,13 @@ class SurveyAnalysisPipeline:
         # Use filtered reviews if available, else fall back to candidates
         reviews_for_analysis = filter_result.filtered_reviews or candidates
 
-        # 4. Bayesian inference (Person 3 - stub)
+        # 5. Bayesian inference (Person 3 - stub)
         insights = self.components.bayesian_net.infer(reviews_for_analysis, topic)
 
-        # 5. HMM analysis (Person 3 - stub)
+        # 6. HMM analysis (Person 3 - stub)
         sequences = self.components.hmm.analyze(reviews_for_analysis)
 
-        # 6. LLM summary (Person 3 - stub)
+        # 7. LLM summary (Person 3 - stub)
         summary = self.components.summarizer.summarize(
             reviews_for_analysis, insights, sequences
         )
@@ -88,6 +96,7 @@ class SurveyAnalysisPipeline:
         pipeline_result = PipelineResult(
             query=query,
             expansion=expansion,
+            filtered_terms=filtered_terms,
             candidate_reviews=candidates,
             filtered_reviews=reviews_for_analysis,
             topic_classifications=filter_result.classifications,
