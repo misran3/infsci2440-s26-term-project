@@ -88,3 +88,12 @@ class PipelineResult:
     bayesian_insights: BayesianInsights
     sentiment_sequences: list[SentimentSequence]
     llm_summary: str
+
+
+@dataclass(frozen=True)
+class FilterResult:
+    """Result of topic filtering."""
+    filtered_reviews: list[Review]
+    classifications: list[TopicClassification]
+    topic_distribution: dict[str, int]
+    fallback_used: bool
