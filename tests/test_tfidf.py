@@ -1,8 +1,12 @@
 """Tests for TF-IDF retrieval."""
 
+import os
+import tempfile
+
 import pytest
+
 from src.loaders.structures import Review
-from src.search.tfidf_retriever import TFIDFRetriever
+from src.search.tfidf_retriever import TFIDFRetriever, load_model, save_model
 
 
 def test_retrieve_returns_relevant():
@@ -114,3 +118,23 @@ def test_get_matching_terms_accuracy():
     assert "shipping" in matching
     assert "delivery" in matching
     assert "price" not in matching
+
+
+def test_save_and_load_model():
+    """Model should round-trip through save/load."""
+    corpus = [
+        Review("1", "shipping was fast", 5, "Good", "A"),
+        Review("2", "delivery is reliable", 4, "OK", "B"),
+    ]
+    retriever = TFIDFRetriever(corpus)
+    retriever.fit()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "test_model.pkl")
+        save_model(retriever, path)
+
+        loaded = load_model(path)
+        assert "vectorizer" in loaded
+        assert "tfidf_matrix" in loaded
+        assert "corpus_ids" in loaded
+        assert loaded["corpus_ids"] == ["1", "2"]
