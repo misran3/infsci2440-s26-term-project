@@ -1,5 +1,8 @@
 """Streamlit web interface for Survey Analysis Agent."""
 
+import asyncio
+import logging
+
 import streamlit as st
 
 from src.classification.naive_bayes import TopicClassifier
@@ -11,7 +14,10 @@ from src.reasoning.bayesian_network import BayesianNetwork
 from src.reasoning.hmm_sentiment import HMMSentiment
 from src.reasoning.llm_summarizer import LLMSummarizer
 from src.search.beam_search import BeamSearchExpander
+from src.search.term_filter import TermFilter
 from src.search.tfidf_retriever import TFIDFRetriever
+
+logger = logging.getLogger(__name__)
 
 
 st.set_page_config(
@@ -40,6 +46,14 @@ def load_pipeline() -> SurveyAnalysisPipeline:
         hmm = HMMSentiment()
         summarizer = LLMSummarizer()
 
+        # Try to create TermFilter, fallback to None if AWS not configured
+        try:
+            term_filter = TermFilter()
+            logger.info("TermFilter initialized successfully")
+        except Exception as e:
+            logger.warning(f"TermFilter unavailable: {e}")
+            term_filter = None
+
         components = PipelineComponents(
             expander=expander,
             retriever=retriever,
@@ -47,6 +61,7 @@ def load_pipeline() -> SurveyAnalysisPipeline:
             bayesian_net=bayesian_net,
             hmm=hmm,
             summarizer=summarizer,
+            term_filter=term_filter,
         )
 
         return SurveyAnalysisPipeline(components)
@@ -113,7 +128,7 @@ def run_cached_pipeline(
     min_confidence: float,
 ):
     """Run pipeline with caching."""
-    return _pipeline.run(query, topic_filter, min_confidence)
+    return asyncio.run(_pipeline.run(query, topic_filter, min_confidence))
 
 
 def run_pipeline_and_display(
