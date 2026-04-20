@@ -148,7 +148,8 @@ def run_pipeline_and_display(
 
     # 1. Query Expansion
     with st.container():
-        st.subheader("1. Query Expansion (Beam Search)")
+        st.subheader("1. Query Expansion (Beam Search + LLM Filter)")
+
         col1, col2 = st.columns([1, 3])
         with col1:
             st.markdown("**Original:**")
@@ -157,11 +158,34 @@ def run_pipeline_and_display(
 
         col1, col2 = st.columns([1, 3])
         with col1:
-            st.markdown("**Expanded:**")
+            st.markdown("**BeamSearch:**")
         with col2:
+            st.markdown(f"{len(result.expansion.expanded_terms)} terms")
+
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.markdown("**LLM Filtered:**")
+        with col2:
+            if len(result.filtered_terms) < len(result.expansion.expanded_terms):
+                st.markdown(f"{len(result.filtered_terms)} terms")
+            elif pipeline.components.term_filter is None:
+                st.markdown(f"{len(result.filtered_terms)} terms (LLM filter skipped - AWS not configured)")
+            else:
+                st.markdown(f"{len(result.filtered_terms)} terms (no terms removed)")
+
+        with st.expander("Show expansion details"):
+            st.markdown("**BeamSearch terms:**")
             st.code(", ".join(result.expansion.expanded_terms))
 
-        with st.expander("Show beam paths"):
+            st.markdown("**Filtered terms (used for retrieval):**")
+            st.code(", ".join(result.filtered_terms))
+
+            removed = set(result.expansion.expanded_terms) - set(result.filtered_terms)
+            if removed:
+                st.markdown("**Removed terms:**")
+                st.code(", ".join(removed))
+
+            st.markdown("**Beam paths:**")
             for path in result.expansion.beam_paths[:5]:
                 st.text(f"  {' → '.join(path['path'])} (score: {path['score']:.2f})")
 
