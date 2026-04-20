@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Judge Reports</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        h1 { color: #333; }
+        .report-list { list-style: none; padding: 0; }
+        .report-item { padding: 0.75rem; border: 1px solid #ddd; margin-bottom: 0.5rem; border-radius: 4px; }
+        .report-item:hover { background: #f5f5f5; }
+        .report-item a { text-decoration: none; color: #0066cc; }
+        .timestamp { color: #666; font-size: 0.9rem; }
+        .empty { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>Judge Reports</h1>
+    {% if reports %}
+    <ul class="report-list">
+        {% for r in reports %}
+        <li class="report-item">
+            <a href="/report/{{ r.path }}">{{ r.path }}</a>
+            <span class="timestamp">{{ r.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">No reports yet. Run <code>uv run pytest tests/judge/ -v</code> to generate one.</p>
+    {% endif %}
+</body>
+</html>
