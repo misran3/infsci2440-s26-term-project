@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import nltk
 from nltk.corpus import wordnet
 
@@ -49,7 +51,7 @@ class BeamSearchExpander:
 
         words = query.lower().split()
         all_terms: set[str] = set(words)
-        beam_paths: list[dict] = []
+        beam_paths: list[dict[str, Any]] = []
 
         # Current beam: list of (expansion_string, score, path)
         beam: list[tuple[str, float, list[str]]] = [(query.lower(), 1.0, [query.lower()])]
