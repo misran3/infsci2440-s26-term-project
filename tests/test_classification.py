@@ -35,3 +35,13 @@ def test_classifier_predicts_correct_topic(training_reviews, training_labels):
     assert len(results) == 1
     assert results[0].predicted_topic == Topic.PERFORMANCE
     assert results[0].confidence > 0.3
+
+
+def test_classifier_handles_empty_input(training_reviews, training_labels):
+    """predict([]) returns []."""
+    classifier = TopicClassifier()
+    classifier.fit(training_reviews, training_labels)
+
+    results = classifier.predict([])
+
+    assert results == []
