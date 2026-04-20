@@ -16,6 +16,7 @@ from src.reasoning.bayesian_network import BayesianNetwork
 from src.reasoning.hmm_sentiment import HMMSentiment
 from src.reasoning.llm_summarizer import LLMSummarizer
 from src.search.beam_search import BeamSearchExpander
+from src.search.term_filter import TermFilter
 from src.search.tfidf_retriever import TFIDFRetriever
 
 
@@ -28,6 +29,7 @@ class PipelineComponents:
     bayesian_net: BayesianNetwork
     hmm: HMMSentiment
     summarizer: LLMSummarizer
+    term_filter: TermFilter | None = None
 
 
 class SurveyAnalysisPipeline:
