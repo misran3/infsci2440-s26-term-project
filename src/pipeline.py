@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from src.classification.naive_bayes import TopicClassifier
 from src.loaders.structures import (

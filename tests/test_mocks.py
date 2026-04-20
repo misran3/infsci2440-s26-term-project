@@ -197,6 +197,7 @@ def test_mock_llm_summarize_returns_string():
     result = PipelineResult(
         query="test",
         expansion=expansion,
+        filtered_terms=["test"],
         candidate_reviews=[],
         filtered_reviews=MOCK_REVIEWS[:2],
         topic_classifications=[],
@@ -227,6 +228,7 @@ def test_mock_llm_summarize_includes_review_count():
     result = PipelineResult(
         query="test",
         expansion=expansion,
+        filtered_terms=["test"],
         candidate_reviews=[],
         filtered_reviews=MOCK_REVIEWS[:2],
         topic_classifications=[],

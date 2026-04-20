@@ -202,6 +202,7 @@ def test_pipeline_result_instantiation():
     result = PipelineResult(
         query="test",
         expansion=expansion,
+        filtered_terms=["test"],
         candidate_reviews=[review],
         filtered_reviews=[review],
         topic_classifications=[classification],
