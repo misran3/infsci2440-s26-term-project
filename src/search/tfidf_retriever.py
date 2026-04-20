@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+from dataclasses import replace
+
 import joblib
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -44,8 +47,7 @@ class TFIDFRetriever:
         results: list[Review] = []
         for idx in top_indices:
             if similarities[idx] > 0:
-                review = self.corpus[idx]
-                review.tfidf_score = float(similarities[idx])
+                review = replace(self.corpus[idx], tfidf_score=float(similarities[idx]))
                 results.append(review)
 
         return results
@@ -60,6 +62,7 @@ class TFIDFRetriever:
 
 def save_model(retriever: TFIDFRetriever, path: str = "models/tfidf_vectorizer.pkl") -> None:
     """Save fitted TF-IDF model to disk."""
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     joblib.dump(
         {
             "vectorizer": retriever.vectorizer,
