@@ -71,3 +71,21 @@ async def test_filter_always_includes_query_terms(temp_cache: Path) -> None:
     result = await tf.filter("bug", ["glitch", "pester", "bug"])
 
     assert "bug" in result
+
+
+@pytest.mark.asyncio
+async def test_filter_calls_llm_for_uncached_terms(temp_cache: Path) -> None:
+    """Filter calls LLM for uncached terms and caches results."""
+    tf = TermFilter(cache_path=temp_cache)
+
+    result = await tf.filter("bug", ["glitch", "pester", "badger", "bug"])
+
+    assert "bug" in result
+    assert "glitch" in result
+    assert "pester" not in result
+    assert "badger" not in result
+
+    assert "glitch" in tf.cache
+    assert tf.cache["glitch"] is True
+    assert "pester" in tf.cache
+    assert tf.cache["pester"] is False
