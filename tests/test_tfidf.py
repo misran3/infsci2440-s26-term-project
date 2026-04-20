@@ -22,3 +22,37 @@ def test_retrieve_returns_relevant():
     assert "1" in review_ids  # Contains "shipping"
     assert "3" in review_ids  # Contains "delivery"
     assert "2" not in review_ids  # No shipping/delivery terms
+
+
+def test_empty_corpus():
+    """Empty corpus should not crash."""
+    retriever = TFIDFRetriever([])
+    retriever.fit()
+
+    results = retriever.retrieve(["shipping"])
+    assert results == []
+
+
+def test_empty_terms():
+    """Empty terms should return empty results."""
+    corpus = [
+        Review("1", "shipping was fast", 5, "Good", "A"),
+    ]
+    retriever = TFIDFRetriever(corpus)
+    retriever.fit()
+
+    results = retriever.retrieve([])
+    assert results == []
+
+
+def test_no_matches():
+    """No matching terms should return empty results."""
+    corpus = [
+        Review("1", "shipping was fast", 5, "Good", "A"),
+        Review("2", "delivery is slow", 2, "Bad", "B"),
+    ]
+    retriever = TFIDFRetriever(corpus)
+    retriever.fit()
+
+    results = retriever.retrieve(["xyznonexistent"])
+    assert results == []
