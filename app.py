@@ -183,7 +183,7 @@ def run_pipeline_and_display(
             removed = set(result.expansion.expanded_terms) - set(result.filtered_terms)
             if removed:
                 st.markdown("**Removed terms:**")
-                st.code(", ".join(removed))
+                st.code(", ".join(sorted(removed)))
 
             st.markdown("**Beam paths:**")
             for path in result.expansion.beam_paths[:5]:
