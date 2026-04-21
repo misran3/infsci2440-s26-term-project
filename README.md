@@ -131,3 +131,76 @@ Cache format (`term -> is_relevant`):
 ```
 
 Cached lookups are ~1.6µs vs ~1-2s for LLM calls.
+
+## Topic Classification
+
+The classification module uses Naive Bayes to categorize reviews into topics:
+
+### Training the Classifier
+
+```bash
+# Train on sample dataset (5K reviews, fast)
+uv run python scripts/train_classifier.py --dataset sample
+
+# Train on full dataset (all labeled reviews)
+uv run python scripts/train_classifier.py --dataset full
+
+# Train and evaluate against gold set
+uv run python scripts/train_classifier.py --dataset sample --evaluate
+```
+
+The trained model is saved to `models/naive_bayes.pkl`.
+
+### Using the Classifier
+
+```python
+from src.classification.naive_bayes import TopicClassifier
+from src.loaders.structures import Review
+
+# Load trained model
+classifier = TopicClassifier.load("models/naive_bayes.pkl")
+
+# Classify reviews
+reviews = [Review("1", "The app crashes constantly", 1, "Buggy", "P1")]
+results = classifier.predict(reviews)
+
+print(results[0].predicted_topic)  # Topic.PERFORMANCE
+print(results[0].confidence)       # 0.85
+
+# Filter reviews by topic
+filter_result = classifier.filter_by_topic(reviews, "performance", min_confidence=0.5)
+print(filter_result.filtered_reviews)
+print(filter_result.topic_distribution)
+```
+
+### Available Topics
+
+- `performance` - crashes, bugs, speed, memory issues
+- `usability` - UI, ease of use, interface design
+- `features` - functionality, missing features, capabilities
+- `pricing` - cost, value, subscription
+- `support` - customer service, documentation
+- `compatibility` - installation, OS support, versions
+- `other` - reviews that don't fit other categories
+
+## Running the UI
+
+```bash
+# Export AWS credentials for LLM-based term filtering (optional but recommended)
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_DEFAULT_REGION="us-east-1"
+
+# Start the Streamlit web interface
+uv run streamlit run app.py
+```
+
+If AWS credentials are not configured, the UI will skip LLM term filtering and use all BeamSearch-expanded terms directly.
+
+The UI displays all pipeline stages:
+1. Query expansion (BeamSearch + LLM filtering)
+2. TF-IDF retrieval
+3. Topic classification (Naive Bayes)
+4. Probabilistic insights (Bayesian Network)
+5. Sentiment sequences (HMM)
+6. Summary (LLM)
