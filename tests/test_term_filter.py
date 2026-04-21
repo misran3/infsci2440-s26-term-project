@@ -16,7 +16,7 @@ def temp_cache(tmp_path: Path) -> Path:
 
 def test_load_empty_cache(temp_cache: Path) -> None:
     """TermFilter initializes with empty cache when file missing."""
-    tf = TermFilter(cache_path=temp_cache)
+    tf = TermFilter(cache_path=temp_cache, validate_credentials=False)
     assert tf.cache == {}
 
 
@@ -25,13 +25,13 @@ def test_load_existing_cache(temp_cache: Path) -> None:
     cache_data = {"glitch": True, "pester": False}
     temp_cache.write_text(json.dumps(cache_data))
 
-    tf = TermFilter(cache_path=temp_cache)
+    tf = TermFilter(cache_path=temp_cache, validate_credentials=False)
     assert tf.cache == cache_data
 
 
 def test_save_cache(temp_cache: Path) -> None:
     """TermFilter saves cache to disk."""
-    tf = TermFilter(cache_path=temp_cache)
+    tf = TermFilter(cache_path=temp_cache, validate_credentials=False)
     tf.cache = {"bug": True, "insect": False}
     tf._save_cache()
 
@@ -42,7 +42,7 @@ def test_save_cache(temp_cache: Path) -> None:
 def test_save_cache_creates_directory(tmp_path: Path) -> None:
     """TermFilter creates parent directory if missing."""
     cache_path = tmp_path / "subdir" / "cache.json"
-    tf = TermFilter(cache_path=cache_path)
+    tf = TermFilter(cache_path=cache_path, validate_credentials=False)
     tf.cache = {"test": True}
     tf._save_cache()
 
@@ -55,7 +55,7 @@ async def test_filter_uses_cache_and_skips_llm(temp_cache: Path) -> None:
     cache_data = {"glitch": True, "pester": False, "bug": True}
     temp_cache.write_text(json.dumps(cache_data))
 
-    tf = TermFilter(cache_path=temp_cache)
+    tf = TermFilter(cache_path=temp_cache, validate_credentials=False)
     result = await tf.filter("bug", ["glitch", "pester", "bug"])
 
     assert set(result) == {"glitch", "bug"}
@@ -67,7 +67,7 @@ async def test_filter_always_includes_query_terms(temp_cache: Path) -> None:
     cache_data = {"glitch": True, "pester": False}
     temp_cache.write_text(json.dumps(cache_data))
 
-    tf = TermFilter(cache_path=temp_cache)
+    tf = TermFilter(cache_path=temp_cache, validate_credentials=False)
     result = await tf.filter("bug", ["glitch", "pester", "bug"])
 
     assert "bug" in result
@@ -76,7 +76,7 @@ async def test_filter_always_includes_query_terms(temp_cache: Path) -> None:
 @pytest.mark.asyncio
 async def test_filter_calls_llm_for_uncached_terms(temp_cache: Path) -> None:
     """Filter calls LLM for uncached terms and caches results."""
-    tf = TermFilter(cache_path=temp_cache)
+    tf = TermFilter(cache_path=temp_cache, validate_credentials=False)
 
     result = await tf.filter("bug", ["glitch", "pester", "badger", "bug"])
 
