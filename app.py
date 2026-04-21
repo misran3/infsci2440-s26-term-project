@@ -120,15 +120,29 @@ def main():
         )
 
 
-@st.cache_data
-def run_cached_pipeline(
-    _pipeline: SurveyAnalysisPipeline,
+def run_pipeline_uncached(
+    pipeline: SurveyAnalysisPipeline,
     query: str,
     topic_filter: str | None,
     min_confidence: float,
 ):
-    """Run pipeline with caching."""
-    return asyncio.run(_pipeline.run(query, topic_filter, min_confidence))
+    """Run pipeline (uncached - results contain complex objects)."""
+    return asyncio.run(pipeline.run(query, topic_filter, min_confidence))
+
+
+def _show_topic_distribution_chart(distribution: dict[str, int]) -> None:
+    """Display topic distribution as a horizontal bar chart."""
+    import pandas as pd
+
+    if not distribution:
+        st.caption("No topics found")
+        return
+
+    df = pd.DataFrame(
+        sorted(distribution.items(), key=lambda x: x[1], reverse=True),
+        columns=["Topic", "Count"],
+    )
+    st.bar_chart(df, x="Topic", y="Count")
 
 
 def run_pipeline_and_display(
@@ -139,7 +153,7 @@ def run_pipeline_and_display(
 ):
     """Run pipeline and display results."""
     with st.spinner("Analyzing..."):
-        result, filter_result = run_cached_pipeline(
+        result, filter_result = run_pipeline_uncached(
             pipeline, query, topic_filter, min_confidence
         )
 
@@ -194,6 +208,18 @@ def run_pipeline_and_display(
         st.subheader("2. TF-IDF Retrieval")
         st.markdown(f"Found **{len(result.candidate_reviews)}** candidate reviews")
 
+        with st.expander("Show sample reviews"):
+            for review in result.candidate_reviews[:5]:
+                stars = "⭐" * review.rating
+                score_str = f"TF-IDF relevance: {review.tfidf_score:.3f}" if review.tfidf_score else ""
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"**{review.title}** {stars}")
+                with col2:
+                    st.markdown(f"<div style='text-align: right; color: gray; font-size: 0.85em;'>{score_str}</div>", unsafe_allow_html=True)
+                st.caption(review.text[:200] + "..." if len(review.text) > 200 else review.text)
+                st.divider()
+
     # 3. Topic Classification
     with st.container():
         st.subheader("3. Topic Classification (Naive Bayes)")
@@ -202,25 +228,41 @@ def run_pipeline_and_display(
         st.markdown(f"Detected topic: **{detected_topic}**")
 
         if filter_result.fallback_used:
-            st.warning(f"⚠️ No reviews matched topic \"{detected_topic}\"")
+            # Count how many were classified as target topic (before confidence filter)
+            topic_count = filter_result.topic_distribution.get(detected_topic, 0)
+            if topic_count > 0:
+                st.warning(
+                    f"⚠️ {topic_count} reviews classified as \"{detected_topic}\" "
+                    f"but none met classification confidence threshold ({min_confidence:.0%})"
+                )
+                st.info("💡 Try lowering the confidence threshold in Optional Filters, or retrain on full dataset")
+            else:
+                st.warning(f"⚠️ No reviews matched topic \"{detected_topic}\"")
             st.markdown("**Topics found in search results:**")
-            for topic, count in sorted(
-                filter_result.topic_distribution.items(),
-                key=lambda x: x[1],
-                reverse=True,
-            ):
-                if count > 0:
-                    st.markdown(f"  • {topic}: {count} reviews")
+            _show_topic_distribution_chart(filter_result.topic_distribution)
         else:
             st.markdown(f"Filtered to **{len(result.filtered_reviews)}** relevant reviews")
 
             st.markdown("**Topic distribution:**")
-            for topic, count in sorted(
-                filter_result.topic_distribution.items(),
-                key=lambda x: x[1],
-                reverse=True,
-            )[:5]:
-                st.markdown(f"  • {topic}: {count}")
+            _show_topic_distribution_chart(filter_result.topic_distribution)
+
+            with st.expander("Show filtered reviews"):
+                for review, classification in zip(
+                    result.filtered_reviews[:5],
+                    filter_result.classifications[:5],
+                ):
+                    stars = "⭐" * review.rating
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.markdown(f"**{review.title}** {stars}")
+                    with col2:
+                        st.markdown(
+                            f"<div style='text-align: right; color: gray; font-size: 0.85em;'>"
+                            f"confidence: {classification.confidence:.1%}</div>",
+                            unsafe_allow_html=True,
+                        )
+                    st.caption(review.text[:200] + "..." if len(review.text) > 200 else review.text)
+                    st.divider()
 
     # 4. Bayesian Network
     with st.container():
