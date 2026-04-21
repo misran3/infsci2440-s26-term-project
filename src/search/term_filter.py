@@ -29,10 +29,22 @@ class FilteredTerms(BaseModel):
 class TermFilter:
     """Filters expanded terms to those relevant for software reviews."""
 
-    def __init__(self, cache_path: Path | None = None) -> None:
+    def __init__(self, cache_path: Path | None = None, validate_credentials: bool = True) -> None:
+        if validate_credentials:
+            self._validate_credentials()
         self.cache_path = cache_path or DATA_DIR / "term_filter_cache.json"
         self.cache: dict[str, bool] = {}
         self._load_cache()
+
+    def _validate_credentials(self) -> None:
+        """Validate AWS credentials can access Bedrock.
+
+        Raises:
+            Exception: If credentials are invalid or Bedrock is inaccessible.
+        """
+        import boto3
+        client = boto3.client("bedrock")
+        client.list_foundation_models()
 
     def _load_cache(self) -> None:
         """Load cache from disk."""
