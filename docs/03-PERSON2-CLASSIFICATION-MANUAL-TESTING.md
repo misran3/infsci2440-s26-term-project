@@ -203,17 +203,17 @@ A review can have high TF-IDF relevance (matches "crash" keyword) but low classi
 
 ## UI Verification Checklist
 
-- [ ] Page title shows "Survey Analysis Agent"
-- [ ] Query input box accepts text
-- [ ] Search button triggers analysis
-- [ ] "Analyzing..." spinner appears during processing
-- [ ] All 6 pipeline sections display
-- [ ] "Show expansion details" expander works (beam paths, removed terms)
-- [ ] "Show sample reviews" expander shows TF-IDF relevance scores
-- [ ] Topic distribution bar chart renders
-- [ ] "Show filtered reviews" expander shows classification confidence
-- [ ] Optional Filters expander works (topic dropdown, confidence slider)
-- [ ] Low confidence warning shows explanation note
+- [x] Page title shows "Survey Analysis Agent"
+- [x] Query input box accepts text
+- [x] Search button triggers analysis
+- [x] "Analyzing..." spinner appears during processing
+- [x] All 6 pipeline sections display
+- [x] "Show expansion details" expander works (beam paths, removed terms)
+- [x] "Show sample reviews" expander shows TF-IDF relevance scores
+- [x] Topic distribution bar chart renders
+- [x] "Show filtered reviews" expander shows classification confidence
+- [x] Optional Filters expander works (topic dropdown, confidence slider)
+- [x] Low confidence warning shows explanation note
 
 ---
 
