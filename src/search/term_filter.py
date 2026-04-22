@@ -5,10 +5,9 @@ import logging
 from pathlib import Path
 
 from pydantic import BaseModel
-from pydantic_ai import Agent
-from pydantic_ai.models.bedrock import BedrockConverseModel
 
-from src.config import DATA_DIR, LLM_HAIKU
+from src.config import DATA_DIR
+from src.llm import get_agent
 
 logger = logging.getLogger(__name__)
 
@@ -29,22 +28,10 @@ class FilteredTerms(BaseModel):
 class TermFilter:
     """Filters expanded terms to those relevant for software reviews."""
 
-    def __init__(self, cache_path: Path | None = None, validate_credentials: bool = True) -> None:
-        if validate_credentials:
-            self._validate_credentials()
+    def __init__(self, cache_path: Path | None = None) -> None:
         self.cache_path = cache_path or DATA_DIR / "term_filter_cache.json"
         self.cache: dict[str, bool] = {}
         self._load_cache()
-
-    def _validate_credentials(self) -> None:
-        """Validate AWS credentials can access Bedrock.
-
-        Raises:
-            Exception: If credentials are invalid or Bedrock is inaccessible.
-        """
-        import boto3
-        client = boto3.client("bedrock")
-        client.list_foundation_models()
 
     def _load_cache(self) -> None:
         """Load cache from disk."""
@@ -87,16 +74,18 @@ class TermFilter:
         if not uncached:
             return cached_relevant
 
+        agent = get_agent(
+            output_type=FilteredTerms,
+            system_prompt=FILTER_PROMPT,
+            required=False,
+        )
+
+        if agent is None:
+            logger.warning("LLM not available. Returning cached terms only.")
+            return cached_relevant
+
         try:
-            model = BedrockConverseModel(model_name=LLM_HAIKU.model_id)
-            agent: Agent[None, FilteredTerms] = Agent(
-                model=model,
-                output_type=FilteredTerms,
-                system_prompt=FILTER_PROMPT,
-            )
-            result = await agent.run(
-                f"Query: {query}\nCandidate terms: {uncached}"
-            )
+            result = await agent.run(f"Query: {query}\nCandidate terms: {uncached}")
             llm_relevant = set(result.output.relevant_terms)
 
             for term in uncached:
