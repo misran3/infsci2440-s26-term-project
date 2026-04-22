@@ -154,14 +154,6 @@ class ModelConfig:
     hmm_model: Path = MODELS_DIR / "hmm_model.pkl"
 
 
-@dataclass(frozen=True)
-class LLMConfig:
-    """LLM provider settings."""
-
-    model_id: str = "us.anthropic.claude-sonnet-4-6"
-    region: str = "us-east-1"
-
-
 # Default instances for easy import
 DATA = DataConfig()
 DATASET = DatasetConfig()
@@ -169,5 +161,3 @@ PREPROCESS = PreprocessConfig()
 SAMPLE = SampleConfig()
 LABELING = LabelingConfig()
 MODELS = ModelConfig()
-LLM = LLMConfig()
-LLM_HAIKU = LLMConfig(model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0")
