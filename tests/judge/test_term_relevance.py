@@ -14,7 +14,7 @@ QUERIES = ["bug", "crash", "good", "easy"]
 async def test_term_relevance(judge_collector):
     """Evaluate term relevance for common queries."""
     expander = BeamSearchExpander(beam_width=3, max_depth=2)
-    term_filter = TermFilter()
+    term_filter = TermFilter(validate_credentials=False)
 
     for query in QUERIES:
         result = expander.expand(query)
