@@ -73,3 +73,49 @@ def test_validate_credentials_bedrock_present():
         valid, msg = validate_credentials(LLMProvider.BEDROCK)
     assert valid is True
     assert msg == ""
+
+
+def test_get_model_returns_bedrock_by_default():
+    """get_model returns BedrockConverseModel when provider is bedrock."""
+    from pydantic_ai.models.bedrock import BedrockConverseModel
+
+    from src.llm.provider import get_model
+
+    with patch.dict(os.environ, {"LLM_PROVIDER": "bedrock"}):
+        model = get_model()
+    assert isinstance(model, BedrockConverseModel)
+
+
+def test_get_model_returns_openai():
+    """get_model returns OpenAIModel when provider is openai."""
+    from pydantic_ai.models.openai import OpenAIModel
+
+    from src.llm.provider import get_model
+
+    with patch.dict(os.environ, {"LLM_PROVIDER": "openai", "OPENAI_API_KEY": "sk-test"}):
+        model = get_model()
+    assert isinstance(model, OpenAIModel)
+
+
+def test_get_model_uses_bedrock_model_env_var():
+    """get_model uses BEDROCK_MODEL env var."""
+    from src.llm.provider import get_model
+
+    with patch.dict(
+        os.environ,
+        {"LLM_PROVIDER": "bedrock", "BEDROCK_MODEL": "us.anthropic.claude-haiku-4-5-20251001-v1:0"},
+    ):
+        model = get_model()
+    assert "claude-haiku" in model.model_name
+
+
+def test_get_model_uses_openai_model_env_var():
+    """get_model uses OPENAI_MODEL env var."""
+    from src.llm.provider import get_model
+
+    with patch.dict(
+        os.environ,
+        {"LLM_PROVIDER": "openai", "OPENAI_API_KEY": "sk-test", "OPENAI_MODEL": "gpt-4o"},
+    ):
+        model = get_model()
+    assert model.model_name == "gpt-4o"

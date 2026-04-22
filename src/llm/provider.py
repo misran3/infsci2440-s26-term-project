@@ -85,6 +85,33 @@ def validate_credentials(provider: LLMProvider) -> tuple[bool, str]:
     return False, f"Unknown provider: {provider}"
 
 
+# Default models per provider
+_DEFAULT_MODELS = {
+    LLMProvider.BEDROCK: "us.anthropic.claude-sonnet-4-6",
+    LLMProvider.OPENAI: "gpt-4o-mini",
+}
+
+
+def get_model():
+    """Create appropriate Pydantic AI model based on provider and model env vars.
+
+    Returns:
+        Configured model instance (BedrockConverseModel or OpenAIModel).
+    """
+    provider = get_provider()
+
+    if provider == LLMProvider.OPENAI:
+        from pydantic_ai.models.openai import OpenAIModel
+
+        model_name = os.getenv("OPENAI_MODEL", _DEFAULT_MODELS[LLMProvider.OPENAI])
+        return OpenAIModel(model_name)
+
+    from pydantic_ai.models.bedrock import BedrockConverseModel
+
+    model_name = os.getenv("BEDROCK_MODEL", _DEFAULT_MODELS[LLMProvider.BEDROCK])
+    return BedrockConverseModel(model_name=model_name)
+
+
 def get_agent[T](output_type: type[T], system_prompt: str) -> Agent[None, T]:
     """Create a Pydantic AI agent with Bedrock backend.
 
