@@ -112,21 +112,35 @@ def get_model():
     return BedrockConverseModel(model_name=model_name)
 
 
-def get_agent[T](output_type: type[T], system_prompt: str) -> Agent[None, T]:
-    """Create a Pydantic AI agent with Bedrock backend.
+def get_agent[T](
+    output_type: type[T],
+    system_prompt: str,
+    *,
+    required: bool = True,
+) -> Agent[None, T] | None:
+    """Create a Pydantic AI agent with multi-backend support.
 
     Args:
         output_type: Pydantic model for structured output.
         system_prompt: System prompt for the agent.
+        required: If True, raise LLMNotAvailableError when credentials invalid.
+                  If False, return None when credentials invalid.
 
     Returns:
-        Configured Agent instance.
+        Configured Agent instance, or None if required=False and credentials invalid.
+
+    Raises:
+        LLMNotAvailableError: If required=True and credentials are invalid.
     """
-    from pydantic_ai.models.bedrock import BedrockConverseModel
+    provider = get_provider()
+    valid, error_msg = validate_credentials(provider)
 
-    from src.config import LLM
+    if not valid:
+        if required:
+            raise LLMNotAvailableError(error_msg)
+        return None
 
-    model = BedrockConverseModel(model_name=LLM.model_id)
+    model = get_model()
     return Agent(
         model=model,
         output_type=output_type,

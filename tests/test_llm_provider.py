@@ -119,3 +119,48 @@ def test_get_model_uses_openai_model_env_var():
     ):
         model = get_model()
     assert model.model_name == "gpt-4o"
+
+
+from pydantic import BaseModel
+
+
+class DummyOutput(BaseModel):
+    """Test output model."""
+
+    value: str
+
+
+def test_get_agent_returns_agent_when_credentials_valid():
+    """get_agent returns Agent when credentials are valid."""
+    from pydantic_ai import Agent
+
+    from src.llm.provider import get_agent
+
+    with patch("src.llm.provider.validate_credentials", return_value=(True, "")):
+        with patch.dict(os.environ, {"LLM_PROVIDER": "bedrock"}):
+            agent = get_agent(output_type=DummyOutput, system_prompt="test")
+    assert isinstance(agent, Agent)
+
+
+def test_get_agent_raises_when_required_and_invalid():
+    """get_agent raises LLMNotAvailableError when required=True and invalid."""
+    from src.llm.provider import LLMNotAvailableError, get_agent
+
+    with patch(
+        "src.llm.provider.validate_credentials",
+        return_value=(False, "Missing credentials"),
+    ):
+        with pytest.raises(LLMNotAvailableError, match="Missing credentials"):
+            get_agent(output_type=DummyOutput, system_prompt="test", required=True)
+
+
+def test_get_agent_returns_none_when_not_required_and_invalid():
+    """get_agent returns None when required=False and invalid."""
+    from src.llm.provider import get_agent
+
+    with patch(
+        "src.llm.provider.validate_credentials",
+        return_value=(False, "Missing credentials"),
+    ):
+        result = get_agent(output_type=DummyOutput, system_prompt="test", required=False)
+    assert result is None
