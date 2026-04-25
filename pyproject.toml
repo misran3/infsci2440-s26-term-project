@@ -17,7 +17,7 @@ dependencies = [
     "pandas>=2.0.0,<3.0.0",
     "pgmpy>=1.0.0",
     "pydantic>=2.13.2",
-    "pydantic-ai-slim[bedrock]>=1.84.1",
+    "pydantic-ai-slim[bedrock,openai]>=1.84.1",
     "scikit-learn>=1.8.0",
     "uvicorn>=0.44.0",
 ]

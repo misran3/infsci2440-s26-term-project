@@ -5,10 +5,12 @@ import pytest
 from src.judge.llm_judge import evaluate_result_relevance
 from src.judge.models import ResultRelevanceTest
 from src.search import BeamSearchExpander, TFIDFRetriever
+from tests.judge.conftest import skip_if_no_credentials
 
 QUERIES = ["problem", "good quality"]
 
 
+@skip_if_no_credentials
 @pytest.mark.asyncio
 async def test_result_relevance(judge_collector, reviews):
     """Evaluate result relevance for common queries."""

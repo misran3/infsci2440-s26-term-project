@@ -5,7 +5,26 @@ from datetime import datetime
 
 from src.judge.models import JudgeReport
 from src.judge.report import save_report
+from src.llm.provider import LLMProvider, validate_credentials
 from src.loaders.loader import load_reviews
+
+
+def has_llm_credentials():
+    """Check if LLM credentials are available.
+
+    Returns:
+        True if credentials are valid, False otherwise.
+    """
+    from src.llm.provider import get_provider
+    provider = get_provider()
+    valid, _ = validate_credentials(provider)
+    return valid
+
+
+skip_if_no_credentials = pytest.mark.skipif(
+    not has_llm_credentials(),
+    reason="LLM credentials not available"
+)
 
 
 class JudgeCollector:

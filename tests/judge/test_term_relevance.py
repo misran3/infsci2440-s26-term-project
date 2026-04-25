@@ -6,10 +6,12 @@ from src.judge.heuristics import check_expansion_not_empty
 from src.judge.llm_judge import evaluate_term_relevance
 from src.judge.models import TermRelevanceTest
 from src.search import BeamSearchExpander, TermFilter
+from tests.judge.conftest import skip_if_no_credentials
 
 QUERIES = ["bug", "crash", "good", "easy"]
 
 
+@skip_if_no_credentials
 @pytest.mark.asyncio
 async def test_term_relevance(judge_collector):
     """Evaluate term relevance for common queries."""
