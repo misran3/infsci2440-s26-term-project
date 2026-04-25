@@ -109,7 +109,7 @@ term_filter = TermFilter()
 result = expander.expand("bug")
 # ['tease', 'badger', 'microbe', 'germ', 'bug', 'pester', ...]
 
-# Filter to software-relevant terms using Claude Haiku
+# Filter to software-relevant terms using LLM (requires LLM credentials, see "LLM Configuration")
 filtered = await term_filter.filter("bug", result.expanded_terms)
 # ['bug']  -- irrelevant terms like 'badger', 'germ' removed
 ```
@@ -183,19 +183,57 @@ print(filter_result.topic_distribution)
 - `compatibility` - installation, OS support, versions
 - `other` - reviews that don't fit other categories
 
-## Running the UI
+## LLM Configuration
+
+The project supports two LLM providers: **Amazon Bedrock** (default) and **OpenAI**.
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LLM_PROVIDER` | Provider selection: `bedrock` or `openai` | `bedrock` |
+| `BEDROCK_MODEL` | Bedrock model ID | `us.anthropic.claude-sonnet-4-6` |
+| `OPENAI_MODEL` | OpenAI model ID | `gpt-4o-mini` |
+| `OPENAI_API_KEY` | OpenAI API key (required for openai provider) | - |
+
+### Using Amazon Bedrock (Default)
 
 ```bash
-# Export AWS credentials for LLM-based term filtering (optional but recommended)
+# Configure AWS credentials (choose one method)
 export AWS_ACCESS_KEY_ID="your-access-key"
 export AWS_SECRET_ACCESS_KEY="your-secret-key"
 export AWS_DEFAULT_REGION="us-east-1"
 
+# Or use AWS CLI profile
+export AWS_PROFILE="your-profile"
+export AWS_REGION="us-east-1"
+
+# Optional: Use a different model
+export BEDROCK_MODEL="us.anthropic.claude-haiku-4-5-20251001-v1:0"
+```
+
+### Using OpenAI
+
+```bash
+export LLM_PROVIDER="openai"
+export OPENAI_API_KEY="sk-..."
+
+# Optional: Use a different model
+export OPENAI_MODEL="gpt-4o"
+```
+
+### Graceful Degradation
+
+If LLM credentials are not configured, features like term filtering will gracefully degrade - returning cached results only instead of failing.
+
+## Running the UI
+
+```bash
 # Start the Streamlit web interface
 uv run streamlit run app.py
 ```
 
-If AWS credentials are not configured, the UI will skip LLM term filtering and use all BeamSearch-expanded terms directly.
+If LLM credentials are not configured, the UI will skip LLM term filtering and use all BeamSearch-expanded terms directly.
 
 The UI displays all pipeline stages:
 1. Query expansion (BeamSearch + LLM filtering)
