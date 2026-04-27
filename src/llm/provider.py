@@ -1,9 +1,16 @@
 """Reusable LLM provider using Pydantic AI with multi-backend support."""
 
+from __future__ import annotations
+
 import os
 from enum import Enum
+from typing import TYPE_CHECKING, TypeVar
 
-from pydantic_ai import Agent
+if TYPE_CHECKING:
+    from pydantic_ai import Agent
+
+
+T = TypeVar("T")
 
 
 class LLMProvider(Enum):
@@ -112,7 +119,7 @@ def get_model():
     return BedrockConverseModel(model_name=model_name)
 
 
-def get_agent[T](
+def get_agent(
     output_type: type[T],
     system_prompt: str,
     *,
@@ -139,6 +146,8 @@ def get_agent[T](
         if required:
             raise LLMNotAvailableError(error_msg)
         return None
+
+    from pydantic_ai import Agent
 
     model = get_model()
     return Agent(
