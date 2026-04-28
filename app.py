@@ -502,9 +502,9 @@ def run_pipeline_and_display(
                     tooltip=["Sentiment", alt.Tooltip("Probability:Q", format=".1%")]
                 ).properties(
                     title=f"Sentiment | Topic: {insights.topic.value}",
-                    height=150
+                    height=120
                 )
-                st.altair_chart(chart1, width="stretch")
+                st.altair_chart(chart1, use_container_width=False)
 
             # Right chart: Rating | Sentiment
             with col2:
@@ -524,9 +524,9 @@ def run_pipeline_and_display(
                     tooltip=["Condition", alt.Tooltip("Probability:Q", format=".1%")]
                 ).properties(
                     title="Rating | Sentiment",
-                    height=150
+                    height=120
                 )
-                st.altair_chart(chart2, width="stretch")
+                st.altair_chart(chart2, use_container_width=False)
 
     # 5. HMM Sentiment
     with st.container():
