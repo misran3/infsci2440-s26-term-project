@@ -1,6 +1,7 @@
 """Integration tests for full pipeline."""
 
 import asyncio
+from unittest.mock import AsyncMock
 
 from src.classification.naive_bayes import TopicClassifier
 from src.loaders.structures import Review
@@ -71,3 +72,42 @@ def test_pipeline_empty_query_handles_gracefully():
 	assert result.filtered_reviews == []
 	assert result.llm_summary != ""
 	assert filter_result.topic_distribution == {}
+
+
+def test_pipeline_captures_llm_themes_quotes():
+	"""Pipeline captures themes and quotes from summarizer."""
+	pipeline = _build_pipeline()
+
+	# Create a mock summarizer that sets themes and quotes
+	mock_summarizer = AsyncMock()
+	mock_summarizer.last_themes = ["battery life", "performance"]
+	mock_summarizer.last_quotes = ["Great battery!", "So fast"]
+	mock_summarizer.summarize.return_value = "Test summary"
+
+	# Replace the real summarizer with our mock
+	pipeline.components.summarizer = mock_summarizer
+
+	result, _ = asyncio.run(pipeline.run("test query", top_k=10))
+
+	assert result.llm_themes == ["battery life", "performance"]
+	assert result.llm_quotes == ["Great battery!", "So fast"]
+
+
+def test_pipeline_handles_missing_llm_themes_quotes():
+	"""Pipeline handles case when summarizer has no themes/quotes."""
+	pipeline = _build_pipeline()
+
+	# Create a mock summarizer with empty themes and quotes
+	mock_summarizer = AsyncMock()
+	mock_summarizer.last_themes = []
+	mock_summarizer.last_quotes = []
+	mock_summarizer.summarize.return_value = "Test summary"
+
+	# Replace the real summarizer with our mock
+	pipeline.components.summarizer = mock_summarizer
+
+	result, _ = asyncio.run(pipeline.run("test query", top_k=10))
+
+	# Empty lists should be converted to None for cleaner API
+	assert result.llm_themes is None
+	assert result.llm_quotes is None

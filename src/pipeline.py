@@ -92,6 +92,10 @@ class SurveyAnalysisPipeline:
             reviews_for_analysis, insights, sequences
         )
 
+        # Capture LLM themes and quotes if available
+        llm_themes = getattr(self.components.summarizer, 'last_themes', None) or None
+        llm_quotes = getattr(self.components.summarizer, 'last_quotes', None) or None
+
         pipeline_result = PipelineResult(
             query=query,
             expansion=expansion,
@@ -102,6 +106,8 @@ class SurveyAnalysisPipeline:
             bayesian_insights=insights,
             sentiment_sequences=sequences,
             llm_summary=summary,
+            llm_themes=llm_themes,
+            llm_quotes=llm_quotes,
         )
 
         return pipeline_result, filter_result
