@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import logging
+import os
 from pathlib import Path
 
 import joblib
@@ -14,6 +16,8 @@ from nltk.sentiment import SentimentIntensityAnalyzer
 from nltk.tokenize import sent_tokenize
 
 from src.loaders.structures import Review, Sentiment, SentimentSequence
+
+logger = logging.getLogger(__name__)
 
 
 def _safe_download_nltk() -> None:
@@ -144,7 +148,8 @@ class HMMSentiment:
                 try:
                     _, state_indices = self.model.decode(obs, algorithm="viterbi")
                     states = [STATE_MAP[idx] for idx in state_indices]
-                except Exception:
+                except (ValueError, IndexError, KeyError) as e:
+                    logger.warning("Viterbi decoding failed for review '%s': %s", review.review_id, e)
                     states = self._fallback_states(sentences)
             else:
                 states = self._fallback_states(sentences)
@@ -174,13 +179,40 @@ class HMMSentiment:
         return states
 
     def save(self, path: str | Path) -> None:
-        """Save the fitted model to disk."""
+        """Save the fitted model to disk.
+
+        Args:
+            path: File path to save the model to.
+
+        Raises:
+            RuntimeError: If the model has not been fitted.
+        """
+        if not self._is_fitted:
+            raise RuntimeError("Cannot save unfitted HMMSentiment")
+
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         joblib.dump(self.model, path)
 
     @classmethod
     def load(cls, path: str | Path) -> "HMMSentiment":
-        """Load a fitted HMMSentiment from disk."""
+        """Load a fitted HMMSentiment from disk.
+
+        Args:
+            path: File path to load the model from.
+
+        Returns:
+            A fitted HMMSentiment instance.
+
+        Raises:
+            ValueError: If the loaded object is not a valid hmmlearn CategoricalHMM.
+        """
+        loaded = joblib.load(path)
+        if not isinstance(loaded, CategoricalHMM):
+            raise ValueError(
+                f"Invalid model type: expected CategoricalHMM, got {type(loaded).__name__}"
+            )
+
         instance = cls()
-        instance.model = joblib.load(path)
+        instance.model = loaded
         instance._is_fitted = True
         return instance
