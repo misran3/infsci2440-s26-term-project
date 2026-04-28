@@ -23,6 +23,71 @@ from src.search.tfidf_retriever import TFIDFRetriever
 logger = logging.getLogger(__name__)
 
 
+def display_model_metadata(metadata: dict[str, dict]) -> None:
+    """Display model metadata in a structured table."""
+    import pandas as pd
+
+    rows = []
+    trained_times = []
+
+    for model_name, meta in metadata.items():
+        if not meta:
+            rows.append({
+                "Model": model_name,
+                "Data Size": "N/A",
+                "Parameters": "N/A",
+                "Metrics": "N/A",
+            })
+            continue
+
+        corpus_size = meta.get("corpus_size", "N/A")
+        if isinstance(corpus_size, int):
+            corpus_size = f"{corpus_size:,}"
+
+        params = meta.get("params", {})
+        metrics = meta.get("metrics", {})
+
+        if model_name == "TF-IDF":
+            params_str = f"max_features={params.get('max_features', 'N/A')}"
+            metrics_str = f"vocab={metrics.get('vocabulary_size', 'N/A'):,}" if isinstance(metrics.get('vocabulary_size'), int) else "N/A"
+        elif model_name == "Naive Bayes":
+            params_str = f"alpha={params.get('alpha', 'N/A')}"
+            classes = metrics.get("classes", [])
+            metrics_str = f"{len(classes)} classes" if classes else "N/A"
+        elif model_name == "Bayesian Net":
+            structure = params.get("structure", [])
+            if structure:
+                params_str = "->".join([e[0][:3] for e in structure] + [structure[-1][1][:3]])
+            else:
+                params_str = "N/A"
+            metrics_str = f"{metrics.get('n_cpds', 'N/A')} CPDs"
+        elif model_name == "HMM":
+            params_str = f"n_components={params.get('n_components', 'N/A')}"
+            converged = metrics.get("converged")
+            metrics_str = f"converged={converged}" if converged is not None else "N/A"
+        else:
+            params_str = str(params)[:30] if params else "N/A"
+            metrics_str = str(metrics)[:30] if metrics else "N/A"
+
+        rows.append({
+            "Model": model_name,
+            "Data Size": corpus_size,
+            "Parameters": params_str,
+            "Metrics": metrics_str,
+        })
+
+        if meta.get("trained_at"):
+            trained_times.append(meta["trained_at"])
+
+    df = pd.DataFrame(rows)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+
+    if trained_times:
+        latest = max(trained_times)
+        trained_display = latest[:16].replace("T", " ")
+        st.caption(f"Trained: {trained_display}")
+
+
 st.set_page_config(
     page_title="Survey Analysis Agent",
     page_icon="🔍",
@@ -31,33 +96,43 @@ st.set_page_config(
 
 
 @st.cache_resource
-def load_pipeline() -> SurveyAnalysisPipeline:
+def load_pipeline() -> tuple[SurveyAnalysisPipeline, dict[str, dict]]:
     """Load all models and create pipeline (cached)."""
+    metadata = {}
+
     with st.spinner("Loading models..."):
-        # Load corpus
-        reviews = load_reviews(path=DATA.clean_reviews, limit=50000)
+        # Load full corpus for TF-IDF retrieval
+        reviews = load_reviews(path=DATA.clean_reviews, sample=False)
 
         # Initialize components
         expander = BeamSearchExpander(beam_width=3, max_depth=2)
 
-        retriever = TFIDFRetriever(reviews)
-        retriever.fit()
+        # Load TF-IDF from disk (trained on full corpus)
+        from src.search.tfidf_retriever import load_retriever
+        retriever, tfidf_meta = load_retriever(str(MODELS.tfidf_vectorizer), reviews)
+        metadata["TF-IDF"] = tfidf_meta
 
         classifier = TopicClassifier.load(str(MODELS.naive_bayes))
+        metadata["Naive Bayes"] = getattr(classifier, "metadata", {})
 
         try:
             bayesian_net = BayesianNetwork.load(MODELS.bayesian_network)
+            metadata["Bayesian Net"] = getattr(bayesian_net, "metadata", {})
             logger.info("Loaded trained Bayesian Network")
         except FileNotFoundError:
             logger.warning("Bayesian model not found, using unfitted instance")
             bayesian_net = BayesianNetwork()
+            metadata["Bayesian Net"] = {}
 
         try:
             hmm = HMMSentiment.load(MODELS.hmm_model)
+            metadata["HMM"] = getattr(hmm, "metadata", {})
             logger.info("Loaded trained HMM model")
         except FileNotFoundError:
             logger.warning("HMM model not found, using unfitted instance")
             hmm = HMMSentiment()
+            metadata["HMM"] = {}
+
         summarizer = LLMSummarizer()
 
         # Try to create TermFilter, fallback to None if AWS not configured
@@ -78,16 +153,19 @@ def load_pipeline() -> SurveyAnalysisPipeline:
             term_filter=term_filter,
         )
 
-        return SurveyAnalysisPipeline(components)
+        return SurveyAnalysisPipeline(components), metadata
 
 
 def main():
-    st.title("🔍 Survey Analysis Agent")
+    st.title("Survey Analysis Agent")
     st.markdown("*Analyze product reviews using AI techniques from INFSCI2440*")
 
     # Load pipeline
     try:
-        pipeline = load_pipeline()
+        pipeline, metadata = load_pipeline()
+        st.success("Models loaded successfully")
+        with st.expander("Model Information", expanded=False):
+            display_model_metadata(metadata)
     except FileNotFoundError:
         st.error("Model not found! Please run: `uv run python scripts/train_classifier.py --dataset sample`")
         return
