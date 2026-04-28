@@ -292,7 +292,7 @@ def _show_topic_distribution_chart(distribution: dict[str, int]) -> None:
     ).properties(
         height=150
     )
-    st.altair_chart(chart, use_container_width=False)
+    st.altair_chart(chart, width="content")
 
 
 def _sentiment_to_emoji(sentiment) -> str:
@@ -471,7 +471,7 @@ def _display_bayesian_card(result) -> None:
         title=f"Sentiment | Topic: {insights.topic.value}",
         height=120
     )
-    st.altair_chart(chart1, use_container_width=False)
+    st.altair_chart(chart1, width="content")
 
     # Rating | Sentiment chart
     rating_data = pd.DataFrame({
@@ -492,7 +492,7 @@ def _display_bayesian_card(result) -> None:
         title="Rating | Sentiment",
         height=120
     )
-    st.altair_chart(chart2, use_container_width=False)
+    st.altair_chart(chart2, width="content")
 
 
 def _display_hmm_card(result) -> None:
@@ -532,7 +532,7 @@ def _display_hmm_card(result) -> None:
                 alt.value("black")
             )
         )
-        st.altair_chart(heatmap + text, use_container_width=False)
+        st.altair_chart(heatmap + text, width="content")
 
     multi_sentence = [s for s in valid_sequences if len(s.sentences) > 1][:5]
     if multi_sentence:
