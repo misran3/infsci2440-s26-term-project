@@ -19,7 +19,7 @@ from src.search.tfidf_retriever import TFIDFRetriever, save_model as save_tfidf_
 
 def _build_reviews_with_topics() -> list:
     """Load labeled reviews and attach topics for probabilistic modules."""
-    reviews, labels = load_labeled_reviews(use_curated=True)
+    reviews, labels = load_labeled_reviews(use_curated=False)
     for review, label in zip(reviews, labels):
         try:
             review.topic = review.topic or Topic(label)
@@ -90,7 +90,7 @@ def train_all(output_dir: Path | None = None, hmm_limit: int | None = None) -> N
     bayesian_path = output_root / MODELS.bayesian_network.name
     bayesian_metadata = {
         "trained_at": datetime.now().isoformat(),
-        "data_source": str(DATA.curated_labels),
+        "data_source": str(DATA.labeled_reviews),
         "corpus_size": len(bayesian_reviews),
         "params": {
             "structure": [list(edge) for edge in bayesian.model.edges()],
