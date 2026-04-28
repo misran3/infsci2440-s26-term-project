@@ -558,266 +558,41 @@ def run_pipeline_and_display(
     min_confidence: float,
     top_k: int = 500,
 ):
-    """Run pipeline and display results."""
+    """Run pipeline and display results in card grid layout."""
     with st.spinner("Analyzing..."):
         result, filter_result = run_pipeline_uncached(
             pipeline, query, topic_filter, min_confidence, top_k
         )
 
     st.markdown("---")
-    st.header("Pipeline Results")
+    st.header("Results")
 
-    # 1. Query Expansion
-    with st.container():
-        st.subheader("1. Query Expansion (Beam Search + LLM Filter)")
+    # Row 1: LLM Summary | Query Expansion
+    row1_col1, row1_col2 = st.columns(2)
+    with row1_col1:
+        with st.container(border=True):
+            _display_llm_summary_card(result)
+    with row1_col2:
+        with st.container(border=True):
+            _display_query_expansion_card(result, pipeline)
 
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.markdown("**Original:**")
-        with col2:
-            st.code(result.expansion.original_query)
+    # Row 2: TF-IDF | Topic Classification
+    row2_col1, row2_col2 = st.columns(2)
+    with row2_col1:
+        with st.container(border=True):
+            _display_tfidf_card(result)
+    with row2_col2:
+        with st.container(border=True):
+            _display_topic_classification_card(result, filter_result, pipeline, query, min_confidence)
 
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.markdown("**BeamSearch:**")
-        with col2:
-            st.markdown(f"{len(result.expansion.expanded_terms)} terms")
-
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.markdown("**LLM Filtered:**")
-        with col2:
-            if len(result.filtered_terms) < len(result.expansion.expanded_terms):
-                st.markdown(f"{len(result.filtered_terms)} terms")
-            elif pipeline.components.term_filter is None:
-                st.markdown(f"{len(result.filtered_terms)} terms (LLM filter skipped - AWS not configured)")
-            else:
-                st.markdown(f"{len(result.filtered_terms)} terms (no terms removed)")
-
-        with st.expander("Show expansion details"):
-            st.markdown("**BeamSearch terms:**")
-            st.code(", ".join(result.expansion.expanded_terms))
-
-            st.markdown("**Filtered terms (used for retrieval):**")
-            st.code(", ".join(result.filtered_terms))
-
-            removed = set(result.expansion.expanded_terms) - set(result.filtered_terms)
-            if removed:
-                st.markdown("**Removed terms:**")
-                st.code(", ".join(sorted(removed)))
-
-            st.markdown("**Beam paths:**")
-            for path in result.expansion.beam_paths[:5]:
-                st.text(f"  {' → '.join(path['path'])} (score: {path['score']:.2f})")
-
-    # 2. TF-IDF Retrieval
-    with st.container():
-        st.subheader("2. TF-IDF Retrieval")
-        st.markdown(f"Found **{len(result.candidate_reviews)}** candidate reviews")
-
-        with st.expander("Show sample reviews"):
-            for review in result.candidate_reviews[:5]:
-                stars = "⭐" * review.rating
-                score_str = f"TF-IDF relevance: {review.tfidf_score:.3f}" if review.tfidf_score else ""
-                col1, col2 = st.columns([3, 1])
-                with col1:
-                    st.markdown(f"**{review.title}** {stars}")
-                with col2:
-                    st.markdown(f"<div style='text-align: right; color: gray; font-size: 0.85em;'>{score_str}</div>", unsafe_allow_html=True)
-                st.caption(review.text[:200] + "..." if len(review.text) > 200 else review.text)
-                st.divider()
-
-    # 3. Topic Classification
-    with st.container():
-        st.subheader("3. Topic Classification (Naive Bayes)")
-
-        detected_topic = topic_filter or pipeline.components.classifier.detect_topic_from_query(query)
-        st.markdown(f"Detected topic: **{detected_topic}**")
-
-        if filter_result.fallback_used:
-            # Count how many were classified as target topic (before confidence filter)
-            topic_count = filter_result.topic_distribution.get(detected_topic, 0)
-            if topic_count > 0:
-                st.warning(
-                    f"⚠️ {topic_count} reviews classified as \"{detected_topic}\" "
-                    f"but none met classification confidence threshold ({min_confidence:.0%})"
-                )
-                st.info("💡 Try lowering the confidence threshold in Optional Filters, or retrain on full dataset")
-            else:
-                st.warning(f"⚠️ No reviews matched topic \"{detected_topic}\"")
-            st.markdown("**Topics found in search results:**")
-            _show_topic_distribution_chart(filter_result.topic_distribution)
-        else:
-            st.markdown(f"Filtered to **{len(result.filtered_reviews)}** relevant reviews")
-
-            st.markdown("**Topic distribution:**")
-            _show_topic_distribution_chart(filter_result.topic_distribution)
-
-            with st.expander("Show filtered reviews"):
-                for review, classification in zip(
-                    result.filtered_reviews[:5],
-                    filter_result.classifications[:5],
-                ):
-                    stars = "⭐" * review.rating
-                    col1, col2 = st.columns([3, 1])
-                    with col1:
-                        st.markdown(f"**{review.title}** {stars}")
-                    with col2:
-                        st.markdown(
-                            f"<div style='text-align: right; color: gray; font-size: 0.85em;'>"
-                            f"confidence: {classification.confidence:.1%}</div>",
-                            unsafe_allow_html=True,
-                        )
-                    st.caption(review.text[:200] + "..." if len(review.text) > 200 else review.text)
-                    st.divider()
-
-    # 4. Bayesian Network
-    with st.container():
-        st.subheader("4. Probabilistic Insights (Bayesian Network)")
-        insights = result.bayesian_insights
-
-        if insights.p_negative_given_topic == 0.0 and insights.p_positive_given_topic == 0.0:
-            st.info("Bayesian Network not yet fitted")
-        else:
-            col1, col2 = st.columns(2)
-
-            # Left chart: Sentiment | Topic
-            with col1:
-                p_neutral = max(0, 1 - insights.p_positive_given_topic - insights.p_negative_given_topic)
-                sentiment_data = pd.DataFrame({
-                    "Sentiment": ["Positive", "Negative", "Neutral"],
-                    "Probability": [
-                        insights.p_positive_given_topic,
-                        insights.p_negative_given_topic,
-                        p_neutral
-                    ],
-                    "Color": ["#2ecc71", "#e74c3c", "#f39c12"]
-                })
-
-                chart1 = alt.Chart(sentiment_data).mark_bar().encode(
-                    x=alt.X("Probability:Q", scale=alt.Scale(domain=[0, 1]), title="Probability"),
-                    y=alt.Y("Sentiment:N", sort=["Positive", "Negative", "Neutral"], title=""),
-                    color=alt.Color("Color:N", scale=None),
-                    tooltip=["Sentiment", alt.Tooltip("Probability:Q", format=".1%")]
-                ).properties(
-                    title=f"Sentiment | Topic: {insights.topic.value}",
-                    height=120
-                )
-                st.altair_chart(chart1, use_container_width=False)
-
-            # Right chart: Rating | Sentiment
-            with col2:
-                rating_data = pd.DataFrame({
-                    "Condition": ["High Rating | Positive", "Low Rating | Negative"],
-                    "Probability": [
-                        insights.p_high_rating_given_positive,
-                        insights.p_low_rating_given_negative
-                    ],
-                    "Color": ["#2ecc71", "#e74c3c"]
-                })
-
-                chart2 = alt.Chart(rating_data).mark_bar().encode(
-                    x=alt.X("Probability:Q", scale=alt.Scale(domain=[0, 1]), title="Probability"),
-                    y=alt.Y("Condition:N", title=""),
-                    color=alt.Color("Color:N", scale=None),
-                    tooltip=["Condition", alt.Tooltip("Probability:Q", format=".1%")]
-                ).properties(
-                    title="Rating | Sentiment",
-                    height=120
-                )
-                st.altair_chart(chart2, use_container_width=False)
-
-    # 5. HMM Sentiment
-    with st.container():
-        st.subheader("5. Sentiment Flow (HMM)")
-
-        sequences = result.sentiment_sequences
-        valid_sequences = [s for s in sequences if s.sentiment_states]
-
-        if not valid_sequences:
-            st.info("HMM Sentiment Analysis: No sequences with sentiment states")
-        else:
-            # Aggregate stats
-            avg_sentences = sum(len(s.sentences) for s in valid_sequences) / len(valid_sequences)
-            st.markdown(f"**Analyzed {len(valid_sequences)} reviews**, average {avg_sentences:.1f} sentences per review")
-
-            # Transition heatmap
-            transition_df = _aggregate_hmm_transitions(valid_sequences)
-            if not transition_df.empty:
-                heatmap = alt.Chart(transition_df).mark_rect().encode(
-                    x=alt.X("To:N", title="To State", sort=["Positive", "Negative", "Neutral"]),
-                    y=alt.Y("From:N", title="From State", sort=["Positive", "Negative", "Neutral"]),
-                    color=alt.Color(
-                        "Probability:Q",
-                        scale=alt.Scale(scheme="blues"),
-                        title="Probability"
-                    ),
-                    tooltip=[
-                        alt.Tooltip("From:N"),
-                        alt.Tooltip("To:N"),
-                        alt.Tooltip("Probability:Q", format=".1%")
-                    ]
-                ).properties(
-                    title="Sentiment Transition Probabilities (averaged across reviews)",
-                    width=280,
-                    height=180
-                )
-
-                # Add text labels on cells
-                text = alt.Chart(transition_df).mark_text(baseline="middle").encode(
-                    x=alt.X("To:N", sort=["Positive", "Negative", "Neutral"]),
-                    y=alt.Y("From:N", sort=["Positive", "Negative", "Neutral"]),
-                    text=alt.Text("Probability:Q", format=".0%"),
-                    color=alt.condition(
-                        alt.datum.Probability > 0.5,
-                        alt.value("white"),
-                        alt.value("black")
-                    )
-                )
-
-                st.altair_chart(heatmap + text, use_container_width=False)
-
-            # Sample reviews with sentiment timeline
-            multi_sentence = [s for s in valid_sequences if len(s.sentences) > 1][:5]
-            if multi_sentence:
-                with st.expander(f"Sample Reviews ({len(multi_sentence)})"):
-                    for seq in multi_sentence:
-                        # Find matching review for rating
-                        matching_review = next(
-                            (r for r in result.filtered_reviews if r.review_id == seq.review_id),
-                            None
-                        )
-                        rating_str = _rating_to_stars(matching_review.rating) if matching_review else ""
-
-                        # Truncate text
-                        review_text = matching_review.text if matching_review else ""
-                        truncated = review_text[:100] + "..." if len(review_text) > 100 else review_text
-
-                        # Sentiment timeline
-                        timeline = "".join(_sentiment_to_emoji(s) for s in seq.sentiment_states)
-
-                        st.markdown(f'"{truncated}" {rating_str}')
-                        st.caption(f"Sentiment flow: {timeline}")
-                        st.markdown("---")
-
-    # 6. LLM Summary
-    with st.container():
-        st.subheader("6. Summary (LLM)")
-
-        # Main summary
-        st.markdown(result.llm_summary)
-
-        # Key themes (if available)
-        if result.llm_themes:
-            st.markdown("**Key Themes:**")
-            for theme in result.llm_themes:
-                st.markdown(f"- {theme}")
-
-        # Representative quotes (if available)
-        if result.llm_quotes:
-            st.markdown("**Representative Quotes:**")
-            for quote in result.llm_quotes:
-                st.markdown(f'> "{quote}"')
+    # Row 3: Bayesian | HMM
+    row3_col1, row3_col2 = st.columns(2)
+    with row3_col1:
+        with st.container(border=True):
+            _display_bayesian_card(result)
+    with row3_col2:
+        with st.container(border=True):
+            _display_hmm_card(result)
 
 
 if __name__ == "__main__":
