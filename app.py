@@ -246,6 +246,46 @@ def _show_topic_distribution_chart(distribution: dict[str, int]) -> None:
     st.bar_chart(df, x="Topic", y="Count")
 
 
+def _aggregate_hmm_transitions(sequences: list) -> pd.DataFrame:
+    """Aggregate transition probabilities across all sequences into a matrix."""
+    if not sequences:
+        return pd.DataFrame()
+
+    transition_keys = [
+        "pos_to_pos", "pos_to_neg", "pos_to_neu",
+        "neg_to_pos", "neg_to_neg", "neg_to_neu",
+        "neu_to_pos", "neu_to_neg", "neu_to_neu",
+    ]
+
+    # Sum transitions across all sequences
+    totals = {k: 0.0 for k in transition_keys}
+    count = 0
+    for seq in sequences:
+        if seq.transitions:
+            for k in transition_keys:
+                totals[k] += seq.transitions.get(k, 0.0)
+            count += 1
+
+    if count == 0:
+        return pd.DataFrame()
+
+    # Average
+    avg = {k: totals[k] / count for k in transition_keys}
+
+    # Build matrix format for heatmap
+    rows = []
+    for from_state in ["Positive", "Negative", "Neutral"]:
+        for to_state in ["Positive", "Negative", "Neutral"]:
+            key = f"{from_state[:3].lower()}_to_{to_state[:3].lower()}"
+            rows.append({
+                "From": from_state,
+                "To": to_state,
+                "Probability": avg.get(key, 0.0)
+            })
+
+    return pd.DataFrame(rows)
+
+
 def run_pipeline_and_display(
     pipeline: SurveyAnalysisPipeline,
     query: str,
@@ -424,12 +464,53 @@ def run_pipeline_and_display(
 
     # 5. HMM Sentiment
     with st.container():
-        st.subheader("5. Sentiment Sequences (HMM)")
+        st.subheader("5. Sentiment Flow (HMM)")
 
-        if not result.sentiment_sequences or not result.sentiment_sequences[0].sentiment_states:
-            st.info("HMM Sentiment Analysis not yet implemented (Person 3)")
+        sequences = result.sentiment_sequences
+        valid_sequences = [s for s in sequences if s.sentiment_states]
+
+        if not valid_sequences:
+            st.info("HMM Sentiment Analysis: No sequences with sentiment states")
         else:
-            st.markdown("Common sentiment patterns in reviews")
+            # Aggregate stats
+            avg_sentences = sum(len(s.sentences) for s in valid_sequences) / len(valid_sequences)
+            st.markdown(f"**Analyzed {len(valid_sequences)} reviews**, average {avg_sentences:.1f} sentences per review")
+
+            # Transition heatmap
+            transition_df = _aggregate_hmm_transitions(valid_sequences)
+            if not transition_df.empty:
+                heatmap = alt.Chart(transition_df).mark_rect().encode(
+                    x=alt.X("To:N", title="To State", sort=["Positive", "Negative", "Neutral"]),
+                    y=alt.Y("From:N", title="From State", sort=["Positive", "Negative", "Neutral"]),
+                    color=alt.Color(
+                        "Probability:Q",
+                        scale=alt.Scale(scheme="blues"),
+                        title="Probability"
+                    ),
+                    tooltip=[
+                        alt.Tooltip("From:N"),
+                        alt.Tooltip("To:N"),
+                        alt.Tooltip("Probability:Q", format=".1%")
+                    ]
+                ).properties(
+                    title="Sentiment Transition Probabilities (averaged across reviews)",
+                    width=300,
+                    height=200
+                )
+
+                # Add text labels on cells
+                text = alt.Chart(transition_df).mark_text(baseline="middle").encode(
+                    x=alt.X("To:N", sort=["Positive", "Negative", "Neutral"]),
+                    y=alt.Y("From:N", sort=["Positive", "Negative", "Neutral"]),
+                    text=alt.Text("Probability:Q", format=".0%"),
+                    color=alt.condition(
+                        alt.datum.Probability > 0.5,
+                        alt.value("white"),
+                        alt.value("black")
+                    )
+                )
+
+                st.altair_chart(heatmap + text, use_container_width=True)
 
     # 6. LLM Summary
     with st.container():
