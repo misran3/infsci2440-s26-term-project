@@ -185,46 +185,31 @@ print(filter_result.topic_distribution)
 
 ## LLM Configuration
 
-The project supports two LLM providers: **Amazon Bedrock** (default) and **OpenAI**.
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `LLM_PROVIDER` | Provider selection: `bedrock` or `openai` | `bedrock` |
-| `BEDROCK_MODEL` | Bedrock model ID | `us.anthropic.claude-sonnet-4-6` |
-| `OPENAI_MODEL` | OpenAI model ID | `gpt-4o-mini` |
-| `OPENAI_API_KEY` | OpenAI API key (required for openai provider) | - |
-
-### Using Amazon Bedrock (Default)
+The project supports two LLM providers: **Amazon Bedrock** (default) and **OpenAI**. Copy `.env.example` to `.env` and configure your credentials:
 
 ```bash
-# Configure AWS credentials (choose one method)
-export AWS_ACCESS_KEY_ID="your-access-key"
-export AWS_SECRET_ACCESS_KEY="your-secret-key"
-export AWS_DEFAULT_REGION="us-east-1"
-
-# Or use AWS CLI profile
-export AWS_PROFILE="your-profile"
-export AWS_REGION="us-east-1"
-
-# Optional: Use a different model
-export BEDROCK_MODEL="us.anthropic.claude-haiku-4-5-20251001-v1:0"
+cp .env.example .env
 ```
 
-### Using OpenAI
-
-```bash
-export LLM_PROVIDER="openai"
-export OPENAI_API_KEY="sk-..."
-
-# Optional: Use a different model
-export OPENAI_MODEL="gpt-4o"
+Example `.env` for Amazon Bedrock:
+```env
+LLM_PROVIDER=bedrock
+LLM_SUMMARY_ENABLED=true
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_DEFAULT_REGION=us-east-1
+BEDROCK_MODEL=us.anthropic.claude-sonnet-4-6
 ```
 
-### Graceful Degradation
+Example `.env` for OpenAI:
+```env
+LLM_PROVIDER=openai
+LLM_SUMMARY_ENABLED=true
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+```
 
-If LLM credentials are not configured, features like term filtering will gracefully degrade - returning cached results only instead of failing.
+See `.env.example` for all available options. If credentials are not configured, LLM features gracefully degrade to cached/deterministic fallbacks.
 
 ## Probabilistic Reasoning
 
