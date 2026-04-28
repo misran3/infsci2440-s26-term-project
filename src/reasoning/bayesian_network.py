@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import logging
+import os
 from pathlib import Path
 
 import joblib
 import pandas as pd
 from pgmpy.estimators import MaximumLikelihoodEstimator
+from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 from pgmpy.models import DiscreteBayesianNetwork as PgmpyBN
 
-from src.loaders.structures import BayesianInsights, Review, Sentiment, Topic
+from src.loaders.structures import BayesianInsights, Review, Topic
+
+logger = logging.getLogger(__name__)
 
 
 class BayesianNetwork:
@@ -75,7 +80,17 @@ class BayesianNetwork:
         self._is_fitted = True
 
     def infer(self, reviews: list[Review], topic: str = "other") -> BayesianInsights:
-        """Query the network for probabilistic insights about a topic."""
+        """Query the network for probabilistic insights about a topic.
+
+        Args:
+            reviews: Unused. Kept for interface compatibility with pipeline.
+                     Inference uses the fitted model, not runtime reviews.
+            topic: Topic string to query probabilities for.
+
+        Returns:
+            BayesianInsights with conditional probabilities.
+        """
+        del reviews  # Explicitly unused; inference uses fitted model
         t = self._coerce_topic(topic)
         topic_str = t.value
 
@@ -98,7 +113,8 @@ class BayesianNetwork:
 
             p_pos = float(sentiment_values[sentiment_states.index("positive")]) if "positive" in sentiment_states else 0.0
             p_neg = float(sentiment_values[sentiment_states.index("negative")]) if "negative" in sentiment_states else 0.0
-        except Exception:
+        except (KeyError, ValueError, IndexError) as e:
+            logger.warning("Failed to query sentiment distribution for topic '%s': %s", topic_str, e)
             p_pos, p_neg = 0.5, 0.5
 
         try:
@@ -108,7 +124,8 @@ class BayesianNetwork:
             )
             rating_states = rating_given_pos.state_names["rating_category"]
             p_high_given_pos = float(rating_given_pos.values[rating_states.index("high")]) if "high" in rating_states else 0.5
-        except Exception:
+        except (KeyError, ValueError, IndexError) as e:
+            logger.warning("Failed to query rating distribution for positive sentiment: %s", e)
             p_high_given_pos = 0.5
 
         try:
@@ -118,7 +135,8 @@ class BayesianNetwork:
             )
             rating_states = rating_given_neg.state_names["rating_category"]
             p_low_given_neg = float(rating_given_neg.values[rating_states.index("low")]) if "low" in rating_states else 0.5
-        except Exception:
+        except (KeyError, ValueError, IndexError) as e:
+            logger.warning("Failed to query rating distribution for negative sentiment: %s", e)
             p_low_given_neg = 0.5
 
         return BayesianInsights(
@@ -130,14 +148,46 @@ class BayesianNetwork:
         )
 
     def save(self, path: str | Path) -> None:
-        """Save the fitted model to disk."""
+        """Save the fitted model to disk.
+
+        Args:
+            path: File path to save the model to.
+
+        Raises:
+            RuntimeError: If the model has not been fitted.
+        """
+        if not self._is_fitted:
+            raise RuntimeError("Cannot save unfitted BayesianNetwork")
+
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         joblib.dump(self.model, path)
 
     @classmethod
     def load(cls, path: str | Path) -> "BayesianNetwork":
-        """Load a fitted BayesianNetwork from disk."""
+        """Load a fitted BayesianNetwork from disk.
+
+        Args:
+            path: File path to load the model from.
+
+        Returns:
+            A fitted BayesianNetwork instance.
+
+        Raises:
+            ValueError: If the loaded object is not a valid pgmpy DiscreteBayesianNetwork.
+        """
+        loaded = joblib.load(path)
+        if not isinstance(loaded, PgmpyBN):
+            raise ValueError(
+                f"Invalid model type: expected DiscreteBayesianNetwork, got {type(loaded).__name__}"
+            )
+
+        # Verify model has fitted CPDs
+        cpds = loaded.get_cpds()
+        if not cpds or not all(isinstance(cpd, TabularCPD) for cpd in cpds):
+            raise ValueError("Loaded model does not have valid fitted CPDs")
+
         instance = cls()
-        instance.model = joblib.load(path)
+        instance.model = loaded
         instance._inference = VariableElimination(instance.model)
         instance._is_fitted = True
         return instance
