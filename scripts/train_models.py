@@ -58,15 +58,15 @@ def train_all(output_dir: Path | None = None, hmm_limit: int | None = None) -> N
     save_tfidf_model(retriever, str(tfidf_path), metadata=tfidf_metadata)
     print(f"Saved TF-IDF model to {tfidf_path}")
 
-    # 2. Naive Bayes classifier on labeled data
+    # 2. Naive Bayes classifier on labeled data (full dataset for confidence)
     print("\n[2/4] Training Naive Bayes classifier...")
-    nb_reviews, nb_labels = load_labeled_reviews(use_curated=True)
+    nb_reviews, nb_labels = load_labeled_reviews(use_curated=False)
     classifier = TopicClassifier()
     metrics = classifier.fit(nb_reviews, nb_labels)
     nb_path = output_root / MODELS.naive_bayes.name
     nb_metadata = {
         "trained_at": datetime.now().isoformat(),
-        "data_source": str(DATA.curated_labels),
+        "data_source": str(DATA.labeled_reviews),
         "corpus_size": metrics["n_samples"],
         "params": {
             "alpha": classifier.classifier.alpha,
