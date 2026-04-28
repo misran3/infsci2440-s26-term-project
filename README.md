@@ -226,6 +226,95 @@ export OPENAI_MODEL="gpt-4o"
 
 If LLM credentials are not configured, features like term filtering will gracefully degrade - returning cached results only instead of failing.
 
+## Probabilistic Reasoning
+
+The reasoning module provides probabilistic analysis of reviews using trained models.
+
+### Training Models
+
+```bash
+# Train all models (TF-IDF, Naive Bayes, Bayesian Network, HMM)
+uv run python scripts/train_models.py
+
+# Limit HMM training data for faster iteration
+uv run python scripts/train_models.py --hmm-limit 10000
+```
+
+Trained models are saved to `models/`:
+- `tfidf_vectorizer.pkl` - TF-IDF retriever
+- `naive_bayes.pkl` - Topic classifier
+- `bayesian_network.pkl` - pgmpy Bayesian Network
+- `hmm_model.pkl` - hmmlearn HMM
+
+### Bayesian Network
+
+Uses [pgmpy](https://pgmpy.org/) for probabilistic reasoning over review attributes:
+
+```python
+from src.reasoning.bayesian_network import BayesianNetwork
+
+# Load trained model
+bn = BayesianNetwork.load("models/bayesian_network.pkl")
+
+# Query conditional probabilities
+insights = bn.infer(reviews, topic="performance")
+print(insights.p_positive_given_topic)      # P(positive | topic=performance)
+print(insights.p_negative_given_topic)      # P(negative | topic=performance)
+print(insights.p_high_rating_given_positive) # P(rating>=4 | positive)
+print(insights.p_low_rating_given_negative)  # P(rating<=2 | negative)
+```
+
+**DAG Structure:** `topic → sentiment → rating_category`
+
+- **Fitting:** Maximum Likelihood Estimation (MLE) for CPTs
+- **Inference:** Variable Elimination for conditional queries
+
+### HMM Sentiment Analysis
+
+Uses [hmmlearn](https://hmmlearn.readthedocs.io/) for sentence-level sentiment sequence analysis:
+
+```python
+from src.reasoning.hmm_sentiment import HMMSentiment
+
+# Load trained model
+hmm = HMMSentiment.load("models/hmm_model.pkl")
+
+# Analyze sentiment sequences
+sequences = hmm.analyze(reviews)
+for seq in sequences:
+    print(seq.sentences)         # ["Great start.", "Then issues.", "Fixed now."]
+    print(seq.sentiment_states)  # [POSITIVE, NEGATIVE, POSITIVE]
+    print(seq.transitions)       # {"pos_to_neg": 0.5, "neg_to_pos": 0.5, ...}
+```
+
+**Model Architecture:**
+- **Hidden States:** 3 (positive, negative, neutral)
+- **Observations:** 5 discretized VADER compound score bins
+- **Training:** Baum-Welch algorithm
+- **Decoding:** Viterbi algorithm for most likely state sequence
+
+### LLM Summarizer
+
+Generates natural language summaries with structured output:
+
+```python
+from src.reasoning.llm_summarizer import LLMSummarizer
+
+summarizer = LLMSummarizer()
+summary = summarizer.summarize(reviews, bayesian_insights, sentiment_sequences)
+
+# Access structured fields (when LLM is enabled)
+print(summarizer.last_themes)  # ["performance issues", "recent improvements"]
+print(summarizer.last_quotes)  # ["crashes constantly", "works great now"]
+```
+
+**Structured Output Fields:**
+- `summary` - Natural language summary
+- `key_themes` - 2-3 main themes identified
+- `representative_quotes` - 2-3 quotes from actual reviews
+
+Enable LLM summaries with: `export LLM_SUMMARY_ENABLED=true`
+
 ## Running the UI
 
 ```bash
