@@ -44,3 +44,14 @@ def test_fit_then_infer_without_input_reviews_uses_fitted_data():
 
 	assert insights.topic == Topic.USABILITY
 	assert insights.p_positive_given_topic >= insights.p_negative_given_topic
+
+
+def test_has_pgmpy_model_after_fit():
+	"""BayesianNetwork should have a pgmpy model after fitting."""
+	from pgmpy.models import DiscreteBayesianNetwork as PgmpyBN
+
+	bn = BayesianNetwork()
+	bn.fit(_reviews())
+
+	assert hasattr(bn, "model")
+	assert isinstance(bn.model, PgmpyBN)
