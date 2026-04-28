@@ -87,14 +87,14 @@ def test_get_model_returns_bedrock_by_default():
 
 
 def test_get_model_returns_openai():
-    """get_model returns OpenAIModel when provider is openai."""
-    from pydantic_ai.models.openai import OpenAIModel
+    """get_model returns OpenAIChatModel when provider is openai."""
+    from pydantic_ai.models.openai import OpenAIChatModel
 
     from src.llm.provider import get_model
 
     with patch.dict(os.environ, {"LLM_PROVIDER": "openai", "OPENAI_API_KEY": "sk-test"}):
         model = get_model()
-    assert isinstance(model, OpenAIModel)
+    assert isinstance(model, OpenAIChatModel)
 
 
 def test_get_model_uses_bedrock_model_env_var():

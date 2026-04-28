@@ -1,9 +1,16 @@
 """Reusable LLM provider using Pydantic AI with multi-backend support."""
 
+from __future__ import annotations
+
 import os
 from enum import Enum
+from typing import TYPE_CHECKING, TypeVar
 
-from pydantic_ai import Agent
+if TYPE_CHECKING:
+    from pydantic_ai import Agent
+
+
+T = TypeVar("T")
 
 
 class LLMProvider(Enum):
@@ -48,7 +55,7 @@ def _check_bedrock_credentials() -> bool:
         import boto3
 
         client = boto3.client("bedrock")
-        client.list_foundation_models(maxResults=1)
+        client.list_foundation_models()
         return True
     except Exception:
         return False
@@ -101,10 +108,10 @@ def get_model():
     provider = get_provider()
 
     if provider == LLMProvider.OPENAI:
-        from pydantic_ai.models.openai import OpenAIModel
+        from pydantic_ai.models.openai import OpenAIChatModel
 
         model_name = os.getenv("OPENAI_MODEL", _DEFAULT_MODELS[LLMProvider.OPENAI])
-        return OpenAIModel(model_name)
+        return OpenAIChatModel(model_name)
 
     from pydantic_ai.models.bedrock import BedrockConverseModel
 
@@ -112,7 +119,7 @@ def get_model():
     return BedrockConverseModel(model_name=model_name)
 
 
-def get_agent[T](
+def get_agent(
     output_type: type[T],
     system_prompt: str,
     *,
@@ -139,6 +146,8 @@ def get_agent[T](
         if required:
             raise LLMNotAvailableError(error_msg)
         return None
+
+    from pydantic_ai import Agent
 
     model = get_model()
     return Agent(
