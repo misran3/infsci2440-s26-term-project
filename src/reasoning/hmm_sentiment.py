@@ -1,13 +1,23 @@
-"""HMM-inspired sentiment sequence analysis for review sentences."""
+# src/reasoning/hmm_sentiment.py
+
+"""HMM-based sentiment sequence analysis using hmmlearn."""
 
 from __future__ import annotations
 
+import logging
+import os
+from pathlib import Path
+
+import joblib
+import numpy as np
 import nltk
+from hmmlearn.hmm import CategoricalHMM
 from nltk.sentiment import SentimentIntensityAnalyzer
 from nltk.tokenize import sent_tokenize
 
-from src.loaders.structures import Review, SentimentSequence
-from src.loaders.structures import Sentiment
+from src.loaders.structures import Review, Sentiment, SentimentSequence
+
+logger = logging.getLogger(__name__)
 
 
 def _safe_download_nltk() -> None:
@@ -16,117 +26,216 @@ def _safe_download_nltk() -> None:
         nltk.data.find("tokenizers/punkt")
     except LookupError:
         nltk.download("punkt", quiet=True)
-
+    try:
+        nltk.data.find("tokenizers/punkt_tab")
+    except LookupError:
+        nltk.download("punkt_tab", quiet=True)
     try:
         nltk.data.find("sentiment/vader_lexicon.zip")
     except LookupError:
         nltk.download("vader_lexicon", quiet=True)
 
 
+# Map hidden state indices to Sentiment enum
+STATE_MAP = {0: Sentiment.POSITIVE, 1: Sentiment.NEGATIVE, 2: Sentiment.NEUTRAL}
+SENTIMENT_TO_STATE = {v: k for k, v in STATE_MAP.items()}
+
+
 class HMMSentiment:
-    """Sentence-level sentiment sequence analyzer with transition estimates."""
+    """Sentence-level sentiment sequence analyzer using hmmlearn HMM."""
+
+    N_HIDDEN_STATES = 3  # positive, negative, neutral
+    N_OBSERVATIONS = 5   # discretized VADER scores
 
     def __init__(self) -> None:
         _safe_download_nltk()
         self.sia = SentimentIntensityAnalyzer()
-        self.global_transitions: dict[str, float] = {
-            "pos_to_pos": 0.5,
-            "pos_to_neg": 0.2,
-            "neg_to_pos": 0.2,
-            "neg_to_neg": 0.5,
-            "neu_to_pos": 0.2,
-            "neu_to_neg": 0.2,
-            "neu_to_neu": 0.6,
-        }
+        self.model = CategoricalHMM(
+            n_components=self.N_HIDDEN_STATES,
+            n_features=self.N_OBSERVATIONS,
+            n_iter=100,
+            random_state=42,
+        )
+        self._is_fitted = False
 
-    def _sentence_sentiment(self, sentence: str) -> Sentiment:
-        """Map VADER compound score to project sentiment states."""
-        score = self.sia.polarity_scores(sentence).get("compound", 0.0)
-        if score >= 0.2:
-            return Sentiment.POSITIVE
-        if score <= -0.2:
-            return Sentiment.NEGATIVE
-        return Sentiment.NEUTRAL
+    def _discretize_score(self, score: float) -> int:
+        """Discretize VADER compound score to observation symbol."""
+        if score < -0.6:
+            return 0  # very negative
+        if score < -0.2:
+            return 1  # negative
+        if score < 0.2:
+            return 2  # neutral
+        if score < 0.6:
+            return 3  # positive
+        return 4  # very positive
 
-    @staticmethod
-    def _transition_key(left: Sentiment, right: Sentiment) -> str:
-        """Create transition key with existing naming convention."""
-        left_prefix = "pos" if left == Sentiment.POSITIVE else "neg" if left == Sentiment.NEGATIVE else "neu"
-        right_prefix = "pos" if right == Sentiment.POSITIVE else "neg" if right == Sentiment.NEGATIVE else "neu"
-        return f"{left_prefix}_to_{right_prefix}"
+    def _sentences_to_observations(self, sentences: list[str]) -> np.ndarray:
+        """Convert sentences to observation sequence."""
+        obs = []
+        for sentence in sentences:
+            score = self.sia.polarity_scores(sentence).get("compound", 0.0)
+            obs.append(self._discretize_score(score))
+        return np.array(obs).reshape(-1, 1)
 
-    def _compute_transitions(self, states: list[Sentiment]) -> dict[str, float]:
-        """Compute per-sequence transition probabilities."""
-        keys = [
-            "pos_to_pos",
-            "pos_to_neg",
-            "neg_to_pos",
-            "neg_to_neg",
-            "neu_to_pos",
-            "neu_to_neg",
-            "neu_to_neu",
-        ]
-        counts = {k: 0 for k in keys}
-
-        if len(states) < 2:
-            return dict(self.global_transitions)
-
-        for left, right in zip(states[:-1], states[1:]):
-            key = self._transition_key(left, right)
-            if key in counts:
-                counts[key] += 1
-
-        total = sum(counts.values())
-        if total == 0:
-            return dict(self.global_transitions)
-
-        return {k: counts[k] / total for k in keys}
+    def _get_sentences(self, review: Review) -> list[str]:
+        """Get sentences from review, tokenizing if needed."""
+        if review.sentences:
+            return list(review.sentences)
+        sentences = [s.strip() for s in sent_tokenize(review.text) if s.strip()]
+        return sentences if sentences else [review.text]
 
     def fit(self, reviews: list[Review]) -> None:
-        """Estimate global transition probabilities from review sentences."""
-        sequences = self.analyze(reviews)
-        if not sequences:
-            return
-
-        totals = {k: 0.0 for k in self.global_transitions}
-        for sequence in sequences:
-            for key, value in sequence.transitions.items():
-                if key in totals:
-                    totals[key] += value
-
-        n = len(sequences)
-        if n > 0:
-            self.global_transitions = {k: totals[k] / n for k in totals}
-
-    def analyze(self, reviews: list[Review]) -> list[SentimentSequence]:
-        """
-        Analyze sentence-level sentiment sequences for each review.
-
-        Args:
-            reviews: Reviews to analyze.
-
-        Returns:
-            List of SentimentSequence objects.
-        """
-        results: list[SentimentSequence] = []
+        """Fit HMM using Baum-Welch on observation sequences."""
+        all_obs = []
+        lengths = []
 
         for review in reviews:
-            sentences = list(review.sentences or [])
-            if not sentences:
-                sentences = [s for s in sent_tokenize(review.text) if s.strip()]
-            if not sentences:
-                sentences = [review.text]
+            sentences = self._get_sentences(review)
+            if len(sentences) < 2:
+                continue
+            obs = self._sentences_to_observations(sentences)
+            all_obs.append(obs)
+            lengths.append(len(obs))
 
-            states = [self._sentence_sentiment(sentence) for sentence in sentences]
+        if not all_obs:
+            return
+
+        X = np.vstack(all_obs)
+        self.model.fit(X, lengths)
+        self._is_fitted = True
+
+    def _compute_transitions(self, states: list[Sentiment]) -> dict[str, float]:
+        """Compute transition probabilities from state sequence."""
+        keys = [
+            "pos_to_pos", "pos_to_neg", "pos_to_neu",
+            "neg_to_pos", "neg_to_neg", "neg_to_neu",
+            "neu_to_pos", "neu_to_neg", "neu_to_neu",
+        ]
+        counts = {k: 0 for k in keys}
+        totals = {"pos": 0, "neg": 0, "neu": 0}
+
+        prefix_map = {
+            Sentiment.POSITIVE: "pos",
+            Sentiment.NEGATIVE: "neg",
+            Sentiment.NEUTRAL: "neu",
+        }
+
+        for i in range(len(states) - 1):
+            curr_prefix = prefix_map[states[i]]
+            next_prefix = prefix_map[states[i + 1]]
+            key = f"{curr_prefix}_to_{next_prefix}"
+            counts[key] += 1
+            totals[curr_prefix] += 1
+
+        result = {}
+        for key in keys:
+            curr_prefix = key.split("_to_")[0]
+            total = totals[curr_prefix]
+            result[key] = counts[key] / total if total > 0 else 0.0
+
+        return result
+
+    def analyze(self, reviews: list[Review]) -> list[SentimentSequence]:
+        """Analyze sentiment sequences using Viterbi decoding."""
+        results = []
+
+        for review in reviews:
+            sentences = self._get_sentences(review)
+            obs = self._sentences_to_observations(sentences)
+
+            if self._is_fitted and len(sentences) >= 2:
+                try:
+                    _, state_indices = self.model.decode(obs, algorithm="viterbi")
+                    states = [STATE_MAP[idx] for idx in state_indices]
+                except (ValueError, IndexError, KeyError) as e:
+                    logger.warning("Viterbi decoding failed for review '%s': %s", review.review_id, e)
+                    states = self._fallback_states(sentences)
+            else:
+                states = self._fallback_states(sentences)
+
             transitions = self._compute_transitions(states)
 
-            results.append(
-                SentimentSequence(
-                    review_id=review.review_id,
-                    sentences=sentences,
-                    sentiment_states=states,
-                    transitions=transitions,
-                )
-            )
+            results.append(SentimentSequence(
+                review_id=review.review_id,
+                sentences=sentences,
+                sentiment_states=states,
+                transitions=transitions,
+            ))
 
         return results
+
+    def _fallback_states(self, sentences: list[str]) -> list[Sentiment]:
+        """Fallback: use VADER directly when model not fitted."""
+        states = []
+        for sentence in sentences:
+            score = self.sia.polarity_scores(sentence).get("compound", 0.0)
+            if score >= 0.2:
+                states.append(Sentiment.POSITIVE)
+            elif score <= -0.2:
+                states.append(Sentiment.NEGATIVE)
+            else:
+                states.append(Sentiment.NEUTRAL)
+        return states
+
+    def save(self, path: str | Path, metadata: dict | None = None) -> None:
+        """Save the fitted model to disk.
+
+        Args:
+            path: File path to save the model to.
+            metadata: Optional training metadata to embed.
+
+        Raises:
+            RuntimeError: If the model has not been fitted.
+        """
+        if not self._is_fitted:
+            raise RuntimeError("Cannot save unfitted HMMSentiment")
+
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        joblib.dump(
+            {
+                "model": self.model,
+                "metadata": metadata or {},
+            },
+            path,
+        )
+
+    @classmethod
+    def load(cls, path: str | Path) -> "HMMSentiment":
+        """Load a fitted HMMSentiment from disk.
+
+        Args:
+            path: File path to load the model from.
+
+        Returns:
+            A fitted HMMSentiment instance.
+
+        Raises:
+            ValueError: If the loaded object is not a valid hmmlearn CategoricalHMM.
+        """
+        data = joblib.load(path)
+
+        # Handle old format (raw model) vs new format (dict with model + metadata)
+        if isinstance(data, CategoricalHMM):
+            # Old format: raw hmmlearn model
+            model = data
+            metadata = {}
+        elif isinstance(data, dict) and "model" in data:
+            # New format: dict with model and metadata
+            model = data["model"]
+            metadata = data.get("metadata", {})
+        else:
+            raise ValueError(
+                f"Invalid model type: expected CategoricalHMM or dict, got {type(data).__name__}"
+            )
+
+        if not isinstance(model, CategoricalHMM):
+            raise ValueError(
+                f"Invalid model type: expected CategoricalHMM, got {type(model).__name__}"
+            )
+
+        instance = cls()
+        instance.model = model
+        instance._is_fitted = True
+        instance.metadata = metadata
+        return instance

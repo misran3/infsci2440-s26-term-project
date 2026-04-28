@@ -216,3 +216,64 @@ def test_pipeline_result_instantiation():
     assert len(result.candidate_reviews) == 1
     assert len(result.filtered_reviews) == 1
     assert result.llm_summary == "Test summary"
+
+
+def test_pipeline_result_llm_themes_quotes_optional():
+    """PipelineResult supports optional llm_themes and llm_quotes."""
+    review = Review(
+        review_id="R001",
+        text="Test review",
+        rating=3,
+        title="Test",
+        product_id="P001"
+    )
+    expansion = QueryExpansion(
+        original_query="test",
+        expanded_terms=["test"],
+        beam_paths=[]
+    )
+    insights = BayesianInsights(
+        topic=Topic.FEATURES,
+        p_positive_given_topic=0.5,
+        p_negative_given_topic=0.5,
+        p_high_rating_given_positive=0.8,
+        p_low_rating_given_negative=0.8
+    )
+    sequence = SentimentSequence(
+        review_id="R001",
+        sentences=["Test review"],
+        sentiment_states=[Sentiment.NEUTRAL],
+        transitions={}
+    )
+
+    # Without themes/quotes (defaults to None)
+    result_no_llm = PipelineResult(
+        query="test",
+        expansion=expansion,
+        filtered_terms=["test"],
+        candidate_reviews=[review],
+        filtered_reviews=[review],
+        topic_classifications=[],
+        bayesian_insights=insights,
+        sentiment_sequences=[sequence],
+        llm_summary="Test summary"
+    )
+    assert result_no_llm.llm_themes is None
+    assert result_no_llm.llm_quotes is None
+
+    # With themes/quotes
+    result_with_llm = PipelineResult(
+        query="test",
+        expansion=expansion,
+        filtered_terms=["test"],
+        candidate_reviews=[review],
+        filtered_reviews=[review],
+        topic_classifications=[],
+        bayesian_insights=insights,
+        sentiment_sequences=[sequence],
+        llm_summary="Test summary",
+        llm_themes=["theme1", "theme2"],
+        llm_quotes=["quote1"]
+    )
+    assert result_with_llm.llm_themes == ["theme1", "theme2"]
+    assert result_with_llm.llm_quotes == ["quote1"]

@@ -3,10 +3,16 @@
 import os
 import tempfile
 
+import joblib
 import pytest
 
 from src.loaders.structures import Review
-from src.search.tfidf_retriever import TFIDFRetriever, load_model, save_model
+from src.search.tfidf_retriever import (
+    TFIDFRetriever,
+    load_model,
+    load_retriever,
+    save_model,
+)
 
 
 def test_retrieve_returns_relevant():
@@ -138,3 +144,81 @@ def test_save_and_load_model():
         assert "tfidf_matrix" in loaded
         assert "corpus_ids" in loaded
         assert loaded["corpus_ids"] == ["1", "2"]
+
+
+def test_save_and_load_model_with_metadata():
+    """Model should save and load metadata."""
+    corpus = [
+        Review("1", "shipping was fast", 5, "Good", "A"),
+        Review("2", "delivery is reliable", 4, "OK", "B"),
+    ]
+    retriever = TFIDFRetriever(corpus)
+    retriever.fit()
+
+    metadata = {
+        "trained_at": "2026-04-28T10:00:00",
+        "data_source": "test_data.csv",
+        "corpus_size": 2,
+        "params": {"max_features": 10000, "ngram_range": [1, 2]},
+        "metrics": {"vocabulary_size": 5},
+    }
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "test_model.pkl")
+        save_model(retriever, path, metadata=metadata)
+
+        loaded = load_model(path)
+        assert "metadata" in loaded
+        assert loaded["metadata"]["corpus_size"] == 2
+        assert loaded["metadata"]["trained_at"] == "2026-04-28T10:00:00"
+
+
+def test_load_model_without_metadata_returns_empty_metadata():
+    """Old model files without metadata should load with empty metadata dict."""
+    corpus = [
+        Review("1", "shipping was fast", 5, "Good", "A"),
+    ]
+    retriever = TFIDFRetriever(corpus)
+    retriever.fit()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "old_model.pkl")
+        # Save in old format (without metadata parameter)
+        joblib.dump(
+            {
+                "vectorizer": retriever.vectorizer,
+                "tfidf_matrix": retriever.tfidf_matrix,
+                "corpus_ids": [r.review_id for r in retriever.corpus],
+            },
+            path,
+        )
+
+        loaded = load_model(path)
+        assert "metadata" in loaded
+        assert loaded["metadata"] == {}
+
+
+def test_load_retriever_restores_functionality():
+    """load_retriever should restore a working retriever."""
+    corpus = [
+        Review("1", "shipping was fast", 5, "Good", "A"),
+        Review("2", "delivery is reliable", 4, "OK", "B"),
+    ]
+    retriever = TFIDFRetriever(corpus)
+    retriever.fit()
+
+    metadata = {"corpus_size": 2, "trained_at": "2026-04-28T10:00:00"}
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "test_model.pkl")
+        save_model(retriever, path, metadata=metadata)
+
+        loaded_retriever, loaded_meta = load_retriever(path, corpus)
+
+        # Verify retriever works
+        results = loaded_retriever.retrieve(["shipping"], top_k=2)
+        assert len(results) >= 1
+        assert results[0].review_id == "1"
+
+        # Verify metadata
+        assert loaded_meta["corpus_size"] == 2

@@ -1,4 +1,4 @@
-"""LLM-based summary generation with deterministic fallback."""
+"""LLM-based summary generation with structured output."""
 
 from __future__ import annotations
 
@@ -10,18 +10,22 @@ from src.llm import get_agent
 from src.loaders.structures import BayesianInsights, Review, SentimentSequence
 
 
-SUMMARY_PROMPT = """You summarize findings from software review analysis.
-Use concise, factual language and mention:
-1) number of relevant reviews
-2) positive vs negative topic probabilities
-3) one short sentiment-flow observation
-Do not invent facts. Keep the summary under 120 words."""
+SUMMARY_PROMPT = """You are an AI assistant that summarizes product review analysis results.
+Given pipeline analysis data and sample reviews, write a concise summary that:
+1. States the key finding (topic, number of reviews, sentiment distribution)
+2. Highlights 2-3 main themes or patterns
+3. Includes 2-3 representative quotes from the actual reviews
+
+Be concise and actionable. Do not invent quotes - only use text from the provided reviews.
+Keep the summary under 150 words."""
 
 
 class SummaryOutput(BaseModel):
     """Structured output for LLM summary responses."""
 
     summary: str
+    key_themes: list[str]
+    representative_quotes: list[str]
 
 
 class LLMSummarizer:
@@ -30,6 +34,8 @@ class LLMSummarizer:
     def __init__(self) -> None:
         self.agent = None
         self._agent_init_attempted = False
+        self.last_themes: list[str] = []
+        self.last_quotes: list[str] = []
 
     def _maybe_init_agent(self) -> None:
         """Initialize agent lazily and only when explicitly enabled."""
@@ -50,6 +56,16 @@ class LLMSummarizer:
             system_prompt=SUMMARY_PROMPT,
             required=False,
         )
+
+    @staticmethod
+    def _format_reviews(reviews: list[Review], max_reviews: int = 10) -> str:
+        """Format reviews for LLM context."""
+        lines = []
+        for r in reviews[:max_reviews]:
+            stars = "*" * r.rating
+            text = r.text[:300] + "..." if len(r.text) > 300 else r.text
+            lines.append(f"[{stars}] {text}")
+        return "\n\n".join(lines)
 
     @staticmethod
     def _fallback_summary(
@@ -74,23 +90,16 @@ class LLMSummarizer:
             f"Average sentiment-sequence length is {avg_sentences:.1f} sentences."
         )
 
-    def summarize(
+    async def summarize(
         self,
         reviews: list[Review],
         insights: BayesianInsights,
         sequences: list[SentimentSequence],
     ) -> str:
-        """
-        Generate a natural-language summary.
+        """Generate a natural-language summary."""
+        self.last_themes = []
+        self.last_quotes = []
 
-        Args:
-            reviews: Filtered reviews.
-            insights: Bayesian insights.
-            sequences: Sentiment sequences.
-
-        Returns:
-            Summary string.
-        """
         fallback = self._fallback_summary(reviews, insights, sequences)
 
         self._maybe_init_agent()
@@ -98,16 +107,15 @@ class LLMSummarizer:
         if self.agent is None:
             return fallback
 
+        reviews_text = self._format_reviews(reviews)
+
         sequence_preview = []
         for seq in sequences[:5]:
             states = [s.value for s in seq.sentiment_states]
-            sequence_preview.append(
-                {
-                    "review_id": seq.review_id,
-                    "states": states,
-                    "transitions": seq.transitions,
-                }
-            )
+            sequence_preview.append({
+                "review_id": seq.review_id,
+                "states": states,
+            })
 
         prompt = (
             f"Review count: {len(reviews)}\n"
@@ -116,12 +124,16 @@ class LLMSummarizer:
             f"P(negative|topic): {insights.p_negative_given_topic:.4f}\n"
             f"P(high_rating|positive): {insights.p_high_rating_given_positive:.4f}\n"
             f"P(low_rating|negative): {insights.p_low_rating_given_negative:.4f}\n"
-            f"Sample sentiment sequences: {sequence_preview}"
+            f"Sample sentiment sequences: {sequence_preview}\n\n"
+            f"SAMPLE REVIEWS:\n{reviews_text}"
         )
 
         try:
-            result = self.agent.run_sync(prompt)
-            summary = result.output.summary.strip()
+            result = await self.agent.run(prompt)
+            output = result.output
+            self.last_themes = output.key_themes
+            self.last_quotes = output.representative_quotes
+            summary = output.summary.strip()
             return summary if summary else fallback
         except Exception:
             return f"AI-generated summary unavailable. {fallback}"

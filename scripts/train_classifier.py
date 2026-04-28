@@ -2,6 +2,7 @@
 
 import argparse
 import time
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -102,8 +103,22 @@ def main():
     print(f"  - Classes: {metrics['classes']}")
     print(f"  - Training time: {elapsed:.2f}s")
 
-    # Save model
-    classifier.save(args.output)
+    # Save model with metadata
+    metadata = {
+        "trained_at": datetime.now().isoformat(),
+        "data_source": str(DATA.labeled_reviews),
+        "corpus_size": metrics["n_samples"],
+        "params": {
+            "alpha": classifier.classifier.alpha,
+            "max_features": classifier.vectorizer.max_features,
+            "ngram_range": list(classifier.vectorizer.ngram_range),
+        },
+        "metrics": {
+            "n_features": metrics["n_features"],
+            "classes": [str(c) for c in metrics["classes"]],
+        },
+    }
+    classifier.save(args.output, metadata=metadata)
     print(f"\nModel saved to {args.output}")
 
     # Evaluate

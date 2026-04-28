@@ -60,7 +60,11 @@ class TFIDFRetriever:
         return [term for term in expanded_terms if term.lower() in review_words]
 
 
-def save_model(retriever: TFIDFRetriever, path: str = "models/tfidf_vectorizer.pkl") -> None:
+def save_model(
+    retriever: TFIDFRetriever,
+    path: str = "models/tfidf_vectorizer.pkl",
+    metadata: dict | None = None,
+) -> None:
     """Save fitted TF-IDF model to disk."""
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     joblib.dump(
@@ -68,6 +72,7 @@ def save_model(retriever: TFIDFRetriever, path: str = "models/tfidf_vectorizer.p
             "vectorizer": retriever.vectorizer,
             "tfidf_matrix": retriever.tfidf_matrix,
             "corpus_ids": [r.review_id for r in retriever.corpus],
+            "metadata": metadata or {},
         },
         path,
     )
@@ -75,4 +80,24 @@ def save_model(retriever: TFIDFRetriever, path: str = "models/tfidf_vectorizer.p
 
 def load_model(path: str = "models/tfidf_vectorizer.pkl") -> dict:
     """Load fitted TF-IDF model from disk."""
-    return joblib.load(path)
+    data = joblib.load(path)
+    if "metadata" not in data:
+        data["metadata"] = {}
+    return data
+
+
+def load_retriever(path: str, corpus: list[Review]) -> tuple[TFIDFRetriever, dict]:
+    """Load a fitted TF-IDF retriever from disk.
+
+    Args:
+        path: Path to the saved model file.
+        corpus: The review corpus (must match training corpus order).
+
+    Returns:
+        Tuple of (TFIDFRetriever, metadata dict).
+    """
+    data = load_model(path)
+    retriever = TFIDFRetriever(corpus)
+    retriever.vectorizer = data["vectorizer"]
+    retriever.tfidf_matrix = data["tfidf_matrix"]
+    return retriever, data.get("metadata", {})
