@@ -34,11 +34,24 @@ class BeamSearchExpander:
         return list(synonyms)[:5]
 
     def score_expansion(self, original: str, expanded: str) -> float:
-        """Score expansion by overlap with original query."""
+        """Score expansion by diversity while maintaining relevance.
+
+        Rewards adding new synonym terms (diversity) while keeping
+        some connection to the original query (relevance). This
+        encourages meaningful query expansion rather than penalizing it.
+        """
         original_words = set(original.lower().split())
         expanded_words = set(expanded.lower().split())
-        overlap = len(original_words & expanded_words)
-        return overlap / max(len(expanded_words), 1) + 0.1
+
+        # New terms added (encourage expansion)
+        new_terms = expanded_words - original_words
+        # Terms retained from original (maintain relevance)
+        retained = original_words & expanded_words
+
+        diversity_score = len(new_terms) * 0.4
+        relevance_score = len(retained) / max(len(original_words), 1) * 0.5
+
+        return diversity_score + relevance_score + 0.1
 
     def expand(self, query: str) -> QueryExpansion:
         """Expand query using beam search over synonyms."""
@@ -50,7 +63,6 @@ class BeamSearchExpander:
             )
 
         words = query.lower().split()
-        all_terms: set[str] = set(words)
         beam_paths: list[dict[str, Any]] = []
 
         # Current beam: list of (expansion_string, score, path)
@@ -74,7 +86,6 @@ class BeamSearchExpander:
                         new_path = path + [new_expansion]
 
                         candidates.append((new_expansion, new_score, new_path))
-                        all_terms.add(syn)
 
             # Keep top beam_width candidates
             candidates.sort(key=lambda x: x[1], reverse=True)
@@ -84,8 +95,13 @@ class BeamSearchExpander:
             for exp, sc, p in beam:
                 beam_paths.append({"path": p, "score": sc})
 
+        # Extract terms only from final beam winners (proper beam search behavior)
+        final_terms: set[str] = set(words)
+        for expansion, _, _ in beam:
+            final_terms.update(expansion.split())
+
         return QueryExpansion(
             original_query=query,
-            expanded_terms=list(all_terms),
+            expanded_terms=list(final_terms),
             beam_paths=beam_paths[:10],
         )
