@@ -411,10 +411,10 @@ def _display_tfidf_card(result) -> None:
             st.divider()
 
 
-def _display_topic_classification_card(result, filter_result, pipeline, query, min_confidence) -> None:
+def _display_topic_classification_card(result, filter_result, pipeline, query, topic_filter, min_confidence) -> None:
     """Display Topic Classification card content."""
     st.markdown("#### Topic Classification")
-    detected_topic = pipeline.components.classifier.detect_topic_from_query(query)
+    detected_topic = topic_filter or pipeline.components.classifier.detect_topic_from_query(query)
     st.markdown(f"Detected: **{detected_topic}**")
 
     if filter_result.fallback_used:
@@ -583,7 +583,7 @@ def run_pipeline_and_display(
             _display_tfidf_card(result)
     with row2_col2:
         with st.container(border=True):
-            _display_topic_classification_card(result, filter_result, pipeline, query, min_confidence)
+            _display_topic_classification_card(result, filter_result, pipeline, query, topic_filter, min_confidence)
 
     # Row 3: Bayesian | HMM
     row3_col1, row3_col2 = st.columns(2)
