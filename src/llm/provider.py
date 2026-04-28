@@ -55,7 +55,7 @@ def _check_bedrock_credentials() -> bool:
         import boto3
 
         client = boto3.client("bedrock")
-        client.list_foundation_models(maxResults=1)
+        client.list_foundation_models()
         return True
     except Exception:
         return False
