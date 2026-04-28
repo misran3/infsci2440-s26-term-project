@@ -47,12 +47,20 @@ def test_summarize_uses_agent_when_available():
 	summarizer = LLMSummarizer()
 	summarizer._agent_init_attempted = True
 	summarizer.agent = SimpleNamespace(
-		run_sync=lambda _: SimpleNamespace(output=SimpleNamespace(summary="LLM summary"))
+		run_sync=lambda _: SimpleNamespace(
+			output=SimpleNamespace(
+				summary="LLM summary",
+				key_themes=["theme1", "theme2"],
+				representative_quotes=["quote1"],
+			)
+		)
 	)
 
 	text = summarizer.summarize([Review("1", "Text", 4, "T", "P")], _insights(), [])
 
 	assert text == "LLM summary"
+	assert summarizer.last_themes == ["theme1", "theme2"]
+	assert summarizer.last_quotes == ["quote1"]
 
 
 def test_summarize_agent_failure_uses_error_fallback():
@@ -67,3 +75,18 @@ def test_summarize_agent_failure_uses_error_fallback():
 	text = summarizer.summarize([Review("1", "Text", 2, "T", "P")], _insights(), [])
 
 	assert "AI-generated summary unavailable" in text
+
+
+def test_summary_output_has_required_fields():
+	"""SummaryOutput model should have summary, key_themes, and representative_quotes."""
+	from src.reasoning.llm_summarizer import SummaryOutput
+
+	output = SummaryOutput(
+		summary="Test summary",
+		key_themes=["theme1", "theme2"],
+		representative_quotes=["quote1"],
+	)
+
+	assert output.summary == "Test summary"
+	assert output.key_themes == ["theme1", "theme2"]
+	assert output.representative_quotes == ["quote1"]
