@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import joblib
+
 from src.classification.naive_bayes import TopicClassifier
 from src.loaders.structures import Review, Topic
 
@@ -35,3 +37,48 @@ def test_detect_topic_from_query_defaults_to_other():
 	classifier = TopicClassifier()
 	detected = classifier.detect_topic_from_query("quantum entanglement in photons")
 	assert detected == "other"
+
+
+def test_save_and_load_with_metadata(tmp_path: Path):
+	"""Saved classifier should include and restore metadata."""
+	reviews, labels = _training_set()
+	classifier = TopicClassifier()
+	classifier.fit(reviews, labels)
+
+	metadata = {
+		"trained_at": "2026-04-28T10:00:00",
+		"data_source": "curated_labels.csv",
+		"corpus_size": 3,
+		"params": {"alpha": 1.0, "max_features": 5000},
+		"metrics": {"n_features": 10, "classes": ["performance", "usability", "pricing"]},
+	}
+
+	model_path = tmp_path / "naive_bayes.pkl"
+	classifier.save(str(model_path), metadata=metadata)
+
+	loaded = TopicClassifier.load(str(model_path))
+	assert hasattr(loaded, "metadata")
+	assert loaded.metadata["corpus_size"] == 3
+	assert loaded.metadata["trained_at"] == "2026-04-28T10:00:00"
+
+
+def test_load_without_metadata_returns_empty_metadata(tmp_path: Path):
+	"""Old model files without metadata should load with empty metadata dict."""
+	reviews, labels = _training_set()
+	classifier = TopicClassifier()
+	classifier.fit(reviews, labels)
+
+	model_path = tmp_path / "old_naive_bayes.pkl"
+	# Save in old format (without metadata)
+	joblib.dump(
+		{
+			"vectorizer": classifier.vectorizer,
+			"classifier": classifier.classifier,
+			"is_fitted": classifier.is_fitted,
+		},
+		model_path,
+	)
+
+	loaded = TopicClassifier.load(str(model_path))
+	assert hasattr(loaded, "metadata")
+	assert loaded.metadata == {}
