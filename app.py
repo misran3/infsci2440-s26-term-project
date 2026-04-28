@@ -3,7 +3,10 @@
 import asyncio
 import logging
 
+from dotenv import load_dotenv
 import streamlit as st
+
+load_dotenv()
 
 from src.classification.naive_bayes import TopicClassifier
 from src.config import DATA, MODELS
