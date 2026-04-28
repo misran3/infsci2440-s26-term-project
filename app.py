@@ -25,6 +25,45 @@ from src.search.tfidf_retriever import TFIDFRetriever
 logger = logging.getLogger(__name__)
 
 
+def inject_custom_css() -> None:
+    """Inject custom CSS for card styling."""
+    st.markdown(
+        """
+        <style>
+        /* Card container styling */
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            border: 1px solid #e2e8f0;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: #ffffff;
+        }
+
+        /* Consistent spacing for result cards */
+        .result-card {
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            background: #ffffff;
+        }
+
+        /* Subheader styling */
+        .card-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #1a202c;
+        }
+
+        /* Reduce chart container padding */
+        div[data-testid="stVegaLiteChart"] {
+            padding: 0 !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def display_model_metadata(metadata: dict[str, dict]) -> None:
     """Display model metadata in a structured table."""
     rows = []
@@ -93,6 +132,8 @@ st.set_page_config(
     page_icon="🔍",
     layout="wide",
 )
+
+inject_custom_css()
 
 
 @st.cache_resource
