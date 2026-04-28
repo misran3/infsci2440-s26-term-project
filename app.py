@@ -202,6 +202,15 @@ def main():
                 step=0.1,
             )
 
+        top_k = st.slider(
+            "TF-IDF Candidates",
+            min_value=100,
+            max_value=2000,
+            value=500,
+            step=100,
+            help="Number of candidate reviews to retrieve before filtering",
+        )
+
     # Run pipeline
     if search_clicked and query:
         run_pipeline_and_display(
@@ -209,6 +218,7 @@ def main():
             query,
             None if topic_filter == "Auto-detect" else topic_filter,
             min_confidence,
+            top_k,
         )
 
 
@@ -217,9 +227,10 @@ def run_pipeline_uncached(
     query: str,
     topic_filter: str | None,
     min_confidence: float,
+    top_k: int = 500,
 ):
     """Run pipeline (uncached - results contain complex objects)."""
-    return asyncio.run(pipeline.run(query, topic_filter, min_confidence))
+    return asyncio.run(pipeline.run(query, topic_filter, min_confidence, top_k))
 
 
 def _show_topic_distribution_chart(distribution: dict[str, int]) -> None:
@@ -242,11 +253,12 @@ def run_pipeline_and_display(
     query: str,
     topic_filter: str | None,
     min_confidence: float,
+    top_k: int = 500,
 ):
     """Run pipeline and display results."""
     with st.spinner("Analyzing..."):
         result, filter_result = run_pipeline_uncached(
-            pipeline, query, topic_filter, min_confidence
+            pipeline, query, topic_filter, min_confidence, top_k
         )
 
     st.markdown("---")
