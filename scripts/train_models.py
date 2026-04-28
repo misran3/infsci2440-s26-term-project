@@ -5,10 +5,11 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 from src.classification.naive_bayes import TopicClassifier
-from src.config import MODELS, MODELS_DIR
+from src.config import DATA, MODELS, MODELS_DIR
 from src.loaders.loader import load_labeled_reviews, load_reviews
 from src.loaders.structures import Topic
 from src.reasoning.bayesian_network import BayesianNetwork
@@ -42,7 +43,19 @@ def train_all(output_dir: Path | None = None, hmm_limit: int | None = None) -> N
     retriever = TFIDFRetriever(corpus)
     retriever.fit()
     tfidf_path = output_root / MODELS.tfidf_vectorizer.name
-    save_tfidf_model(retriever, str(tfidf_path))
+    tfidf_metadata = {
+        "trained_at": datetime.now().isoformat(),
+        "data_source": str(DATA.clean_reviews),
+        "corpus_size": len(corpus),
+        "params": {
+            "max_features": retriever.vectorizer.max_features,
+            "ngram_range": list(retriever.vectorizer.ngram_range),
+        },
+        "metrics": {
+            "vocabulary_size": len(retriever.vectorizer.vocabulary_),
+        },
+    }
+    save_tfidf_model(retriever, str(tfidf_path), metadata=tfidf_metadata)
     print(f"Saved TF-IDF model to {tfidf_path}")
 
     # 2. Naive Bayes classifier on labeled data
@@ -51,7 +64,21 @@ def train_all(output_dir: Path | None = None, hmm_limit: int | None = None) -> N
     classifier = TopicClassifier()
     metrics = classifier.fit(nb_reviews, nb_labels)
     nb_path = output_root / MODELS.naive_bayes.name
-    classifier.save(str(nb_path))
+    nb_metadata = {
+        "trained_at": datetime.now().isoformat(),
+        "data_source": str(DATA.curated_labels),
+        "corpus_size": metrics["n_samples"],
+        "params": {
+            "alpha": classifier.classifier.alpha,
+            "max_features": classifier.vectorizer.max_features,
+            "ngram_range": list(classifier.vectorizer.ngram_range),
+        },
+        "metrics": {
+            "n_features": metrics["n_features"],
+            "classes": metrics["classes"],
+        },
+    }
+    classifier.save(str(nb_path), metadata=nb_metadata)
     print(f"Saved Naive Bayes model to {nb_path}")
     print(f"Training samples: {metrics['n_samples']}, features: {metrics['n_features']}")
 
@@ -61,7 +88,18 @@ def train_all(output_dir: Path | None = None, hmm_limit: int | None = None) -> N
     bayesian = BayesianNetwork()
     bayesian.fit(bayesian_reviews)
     bayesian_path = output_root / MODELS.bayesian_network.name
-    bayesian.save(bayesian_path)
+    bayesian_metadata = {
+        "trained_at": datetime.now().isoformat(),
+        "data_source": str(DATA.curated_labels),
+        "corpus_size": len(bayesian_reviews),
+        "params": {
+            "structure": [list(edge) for edge in bayesian.model.edges()],
+        },
+        "metrics": {
+            "n_cpds": len(bayesian.model.get_cpds()),
+        },
+    }
+    bayesian.save(bayesian_path, metadata=bayesian_metadata)
     print(f"Saved Bayesian model to {bayesian_path}")
 
     # 4. HMM sentiment model with hmmlearn
@@ -72,7 +110,19 @@ def train_all(output_dir: Path | None = None, hmm_limit: int | None = None) -> N
     hmm = HMMSentiment()
     hmm.fit(hmm_reviews)
     hmm_path = output_root / MODELS.hmm_model.name
-    hmm.save(hmm_path)
+    hmm_metadata = {
+        "trained_at": datetime.now().isoformat(),
+        "data_source": str(DATA.clean_reviews),
+        "corpus_size": len(hmm_reviews),
+        "params": {
+            "n_components": hmm.model.n_components,
+            "n_iter": hmm.model.n_iter,
+        },
+        "metrics": {
+            "converged": hmm.model.monitor_.converged,
+        },
+    }
+    hmm.save(hmm_path, metadata=hmm_metadata)
     print(f"Saved HMM model to {hmm_path}")
     print(f"HMM converged: {hmm.model.monitor_.converged}")
 
