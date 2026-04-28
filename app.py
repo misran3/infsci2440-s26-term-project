@@ -3,7 +3,9 @@
 import asyncio
 import logging
 
+import altair as alt
 from dotenv import load_dotenv
+import pandas as pd
 import streamlit as st
 
 load_dotenv()
@@ -25,8 +27,6 @@ logger = logging.getLogger(__name__)
 
 def display_model_metadata(metadata: dict[str, dict]) -> None:
     """Display model metadata in a structured table."""
-    import pandas as pd
-
     rows = []
     trained_times = []
 
@@ -235,8 +235,6 @@ def run_pipeline_uncached(
 
 def _show_topic_distribution_chart(distribution: dict[str, int]) -> None:
     """Display topic distribution as a horizontal bar chart."""
-    import pandas as pd
-
     if not distribution:
         st.caption("No topics found")
         return
@@ -373,20 +371,56 @@ def run_pipeline_and_display(
         st.subheader("4. Probabilistic Insights (Bayesian Network)")
         insights = result.bayesian_insights
 
-        if insights.p_negative_given_topic == 0.0:
-            st.info("Bayesian Network not yet implemented (Person 3)")
+        if insights.p_negative_given_topic == 0.0 and insights.p_positive_given_topic == 0.0:
+            st.info("Bayesian Network not yet fitted")
         else:
             col1, col2 = st.columns(2)
+
+            # Left chart: Sentiment | Topic
             with col1:
-                st.metric(
-                    "P(Negative | Topic)",
-                    f"{insights.p_negative_given_topic:.0%}",
+                p_neutral = max(0, 1 - insights.p_positive_given_topic - insights.p_negative_given_topic)
+                sentiment_data = pd.DataFrame({
+                    "Sentiment": ["Positive", "Negative", "Neutral"],
+                    "Probability": [
+                        insights.p_positive_given_topic,
+                        insights.p_negative_given_topic,
+                        p_neutral
+                    ],
+                    "Color": ["#2ecc71", "#e74c3c", "#f39c12"]
+                })
+
+                chart1 = alt.Chart(sentiment_data).mark_bar().encode(
+                    x=alt.X("Probability:Q", scale=alt.Scale(domain=[0, 1]), title="Probability"),
+                    y=alt.Y("Sentiment:N", sort=["Positive", "Negative", "Neutral"], title=""),
+                    color=alt.Color("Color:N", scale=None),
+                    tooltip=["Sentiment", alt.Tooltip("Probability:Q", format=".1%")]
+                ).properties(
+                    title=f"Sentiment | Topic: {insights.topic.value}",
+                    height=150
                 )
+                st.altair_chart(chart1, use_container_width=True)
+
+            # Right chart: Rating | Sentiment
             with col2:
-                st.metric(
-                    "P(Low Rating | Negative)",
-                    f"{insights.p_low_rating_given_negative:.0%}",
+                rating_data = pd.DataFrame({
+                    "Condition": ["High Rating | Positive", "Low Rating | Negative"],
+                    "Probability": [
+                        insights.p_high_rating_given_positive,
+                        insights.p_low_rating_given_negative
+                    ],
+                    "Color": ["#2ecc71", "#e74c3c"]
+                })
+
+                chart2 = alt.Chart(rating_data).mark_bar().encode(
+                    x=alt.X("Probability:Q", scale=alt.Scale(domain=[0, 1]), title="Probability"),
+                    y=alt.Y("Condition:N", title=""),
+                    color=alt.Color("Color:N", scale=None),
+                    tooltip=["Condition", alt.Tooltip("Probability:Q", format=".1%")]
+                ).properties(
+                    title="Rating | Sentiment",
+                    height=150
                 )
+                st.altair_chart(chart2, use_container_width=True)
 
     # 5. HMM Sentiment
     with st.container():
