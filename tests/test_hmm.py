@@ -3,6 +3,7 @@
 import tempfile
 from pathlib import Path
 
+import joblib
 import pytest
 
 from src.loaders.structures import Review, Sentiment
@@ -159,3 +160,41 @@ def test_save_creates_parent_directories():
 		hmm.save(path)
 
 		assert path.exists()
+
+
+def test_save_and_load_with_metadata():
+	"""Saved model should include and restore metadata."""
+	hmm = HMMSentiment()
+	hmm.fit(_reviews())
+
+	metadata = {
+		"trained_at": "2026-04-28T10:00:00",
+		"data_source": "clean_reviews.csv",
+		"corpus_size": 3,
+		"params": {"n_components": 3, "n_iter": 100},
+		"metrics": {"converged": True},
+	}
+
+	with tempfile.TemporaryDirectory() as tmpdir:
+		path = Path(tmpdir) / "model.pkl"
+		hmm.save(path, metadata=metadata)
+
+		loaded_hmm = HMMSentiment.load(path)
+		assert hasattr(loaded_hmm, "metadata")
+		assert loaded_hmm.metadata["corpus_size"] == 3
+		assert loaded_hmm.metadata["trained_at"] == "2026-04-28T10:00:00"
+
+
+def test_load_without_metadata_returns_empty_metadata():
+	"""Old model files without metadata should load with empty metadata dict."""
+	hmm = HMMSentiment()
+	hmm.fit(_reviews())
+
+	with tempfile.TemporaryDirectory() as tmpdir:
+		path = Path(tmpdir) / "old_model.pkl"
+		# Save in old format (raw model, no metadata wrapper)
+		joblib.dump(hmm.model, path)
+
+		loaded_hmm = HMMSentiment.load(path)
+		assert hasattr(loaded_hmm, "metadata")
+		assert loaded_hmm.metadata == {}

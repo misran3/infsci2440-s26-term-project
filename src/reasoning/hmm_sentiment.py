@@ -178,11 +178,12 @@ class HMMSentiment:
                 states.append(Sentiment.NEUTRAL)
         return states
 
-    def save(self, path: str | Path) -> None:
+    def save(self, path: str | Path, metadata: dict | None = None) -> None:
         """Save the fitted model to disk.
 
         Args:
             path: File path to save the model to.
+            metadata: Optional training metadata to embed.
 
         Raises:
             RuntimeError: If the model has not been fitted.
@@ -191,7 +192,13 @@ class HMMSentiment:
             raise RuntimeError("Cannot save unfitted HMMSentiment")
 
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        joblib.dump(self.model, path)
+        joblib.dump(
+            {
+                "model": self.model,
+                "metadata": metadata or {},
+            },
+            path,
+        )
 
     @classmethod
     def load(cls, path: str | Path) -> "HMMSentiment":
@@ -206,13 +213,29 @@ class HMMSentiment:
         Raises:
             ValueError: If the loaded object is not a valid hmmlearn CategoricalHMM.
         """
-        loaded = joblib.load(path)
-        if not isinstance(loaded, CategoricalHMM):
+        data = joblib.load(path)
+
+        # Handle old format (raw model) vs new format (dict with model + metadata)
+        if isinstance(data, CategoricalHMM):
+            # Old format: raw hmmlearn model
+            model = data
+            metadata = {}
+        elif isinstance(data, dict) and "model" in data:
+            # New format: dict with model and metadata
+            model = data["model"]
+            metadata = data.get("metadata", {})
+        else:
             raise ValueError(
-                f"Invalid model type: expected CategoricalHMM, got {type(loaded).__name__}"
+                f"Invalid model type: expected CategoricalHMM or dict, got {type(data).__name__}"
+            )
+
+        if not isinstance(model, CategoricalHMM):
+            raise ValueError(
+                f"Invalid model type: expected CategoricalHMM, got {type(model).__name__}"
             )
 
         instance = cls()
-        instance.model = loaded
+        instance.model = model
         instance._is_fitted = True
+        instance.metadata = metadata
         return instance
