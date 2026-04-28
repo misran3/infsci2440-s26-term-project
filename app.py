@@ -57,7 +57,7 @@ def display_model_metadata(metadata: dict[str, dict]) -> None:
         elif model_name == "Bayesian Net":
             structure = params.get("structure", [])
             if structure:
-                params_str = "->".join([e[0][:3] for e in structure] + [structure[-1][1][:3]])
+                params_str = "→".join([e[0][:3] for e in structure] + [structure[-1][1][:3]])
             else:
                 params_str = "N/A"
             metrics_str = f"{metrics.get('n_cpds', 'N/A')} CPDs"
