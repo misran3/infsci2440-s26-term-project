@@ -560,8 +560,8 @@ def run_pipeline_and_display(
                     ]
                 ).properties(
                     title="Sentiment Transition Probabilities (averaged across reviews)",
-                    width=300,
-                    height=200
+                    width=280,
+                    height=180
                 )
 
                 # Add text labels on cells
@@ -576,7 +576,7 @@ def run_pipeline_and_display(
                     )
                 )
 
-                st.altair_chart(heatmap + text, width="stretch")
+                st.altair_chart(heatmap + text, use_container_width=False)
 
             # Sample reviews with sentiment timeline
             multi_sentence = [s for s in valid_sequences if len(s.sentences) > 1][:5]
