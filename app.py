@@ -469,9 +469,9 @@ def _display_bayesian_card(result) -> None:
         tooltip=["Sentiment", alt.Tooltip("Probability:Q", format=".1%")]
     ).properties(
         title=f"Sentiment | Topic: {insights.topic.value}",
-        height=120
+        height=150
     )
-    st.altair_chart(chart1, width="content")
+    st.altair_chart(chart1, width="stretch")
 
     # Rating | Sentiment chart
     rating_data = pd.DataFrame({
@@ -490,9 +490,9 @@ def _display_bayesian_card(result) -> None:
         tooltip=["Condition", alt.Tooltip("Probability:Q", format=".1%")]
     ).properties(
         title="Rating | Sentiment",
-        height=120
+        height=150
     )
-    st.altair_chart(chart2, width="content")
+    st.altair_chart(chart2, width="stretch")
 
 
 def _display_hmm_card(result) -> None:
@@ -570,28 +570,28 @@ def run_pipeline_and_display(
     # Row 1: LLM Summary | Query Expansion
     row1_col1, row1_col2 = st.columns(2)
     with row1_col1:
-        with st.container(border=True):
+        with st.container(border=True, height=400):
             _display_llm_summary_card(result)
     with row1_col2:
-        with st.container(border=True):
+        with st.container(border=True, height=400):
             _display_query_expansion_card(result, pipeline)
 
     # Row 2: TF-IDF | Topic Classification
     row2_col1, row2_col2 = st.columns(2)
     with row2_col1:
-        with st.container(border=True):
+        with st.container(border=True, height=350):
             _display_tfidf_card(result)
     with row2_col2:
-        with st.container(border=True):
+        with st.container(border=True, height=350):
             _display_topic_classification_card(result, filter_result, pipeline, query, topic_filter, min_confidence)
 
     # Row 3: Bayesian | HMM
     row3_col1, row3_col2 = st.columns(2)
     with row3_col1:
-        with st.container(border=True):
+        with st.container(border=True, height=380):
             _display_bayesian_card(result)
     with row3_col2:
-        with st.container(border=True):
+        with st.container(border=True, height=380):
             _display_hmm_card(result)
 
 
