@@ -89,6 +89,8 @@ class PipelineResult:
     bayesian_insights: BayesianInsights
     sentiment_sequences: list[SentimentSequence]
     llm_summary: str
+    llm_themes: list[str] | None = None
+    llm_quotes: list[str] | None = None
 
 
 @dataclass(frozen=True)
