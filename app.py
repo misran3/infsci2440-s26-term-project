@@ -183,7 +183,7 @@ def main():
     with col2:
         st.write("")  # Spacer
         st.write("")  # Spacer
-        search_clicked = st.button("Search", type="primary", use_container_width=True)
+        search_clicked = st.button("Search", type="primary", width="stretch")
 
     # Optional filters
     with st.expander("Optional Filters"):
@@ -455,7 +455,7 @@ def run_pipeline_and_display(
                     title=f"Sentiment | Topic: {insights.topic.value}",
                     height=150
                 )
-                st.altair_chart(chart1, use_container_width=True)
+                st.altair_chart(chart1, width="stretch")
 
             # Right chart: Rating | Sentiment
             with col2:
@@ -477,7 +477,7 @@ def run_pipeline_and_display(
                     title="Rating | Sentiment",
                     height=150
                 )
-                st.altair_chart(chart2, use_container_width=True)
+                st.altair_chart(chart2, width="stretch")
 
     # 5. HMM Sentiment
     with st.container():
@@ -527,7 +527,7 @@ def run_pipeline_and_display(
                     )
                 )
 
-                st.altair_chart(heatmap + text, use_container_width=True)
+                st.altair_chart(heatmap + text, width="stretch")
 
             # Sample reviews with sentiment timeline
             multi_sentence = [s for s in valid_sequences if len(s.sentences) > 1][:5]
