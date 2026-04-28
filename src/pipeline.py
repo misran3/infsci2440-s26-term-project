@@ -8,6 +8,7 @@ from src.classification.naive_bayes import TopicClassifier
 from src.loaders.structures import (
     FilterResult,
     PipelineResult,
+    PreprocessedQuery,
     QueryExpansion,
     Review,
 )
@@ -15,6 +16,7 @@ from src.reasoning.bayesian_network import BayesianNetwork
 from src.reasoning.hmm_sentiment import HMMSentiment
 from src.reasoning.llm_summarizer import LLMSummarizer
 from src.search.beam_search import BeamSearchExpander
+from src.search.query_preprocessor import QueryPreprocessor
 from src.search.term_filter import TermFilter
 from src.search.tfidf_retriever import TFIDFRetriever
 
@@ -29,6 +31,7 @@ class PipelineComponents:
     hmm: HMMSentiment
     summarizer: LLMSummarizer
     term_filter: TermFilter | None = None
+    preprocessor: QueryPreprocessor | None = None
 
 
 class SurveyAnalysisPipeline:
@@ -56,8 +59,20 @@ class SurveyAnalysisPipeline:
         Returns:
             Tuple of (PipelineResult, FilterResult).
         """
+        # 0. Preprocess query (extract keywords from NL if needed)
+        if self.components.preprocessor:
+            preprocessed = await self.components.preprocessor.preprocess(query)
+            keyword_query = " ".join(preprocessed.extracted_keywords)
+        else:
+            preprocessed = PreprocessedQuery(
+                original_query=query,
+                extracted_keywords=query.lower().split(),
+                was_preprocessed=False,
+            )
+            keyword_query = query
+
         # 1. Expand query (Person 1 - implemented)
-        expansion = self.components.expander.expand(query)
+        expansion = self.components.expander.expand(keyword_query)
 
         # 2. Filter terms (LLM - async, optional)
         if self.components.term_filter:
@@ -98,6 +113,7 @@ class SurveyAnalysisPipeline:
 
         pipeline_result = PipelineResult(
             query=query,
+            preprocessed=preprocessed,
             expansion=expansion,
             filtered_terms=filtered_terms,
             candidate_reviews=candidates,

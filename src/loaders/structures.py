@@ -91,6 +91,7 @@ class PipelineResult:
     llm_summary: str
     llm_themes: list[str] | None = None
     llm_quotes: list[str] | None = None
+    preprocessed: PreprocessedQuery | None = None
 
 
 @dataclass(frozen=True)
