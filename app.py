@@ -42,8 +42,19 @@ def load_pipeline() -> SurveyAnalysisPipeline:
 
         classifier = TopicClassifier.load(str(MODELS.naive_bayes))
 
-        bayesian_net = BayesianNetwork()
-        hmm = HMMSentiment()
+        try:
+            bayesian_net = BayesianNetwork.load(MODELS.bayesian_network)
+            logger.info("Loaded trained Bayesian Network")
+        except FileNotFoundError:
+            logger.warning("Bayesian model not found, using unfitted instance")
+            bayesian_net = BayesianNetwork()
+
+        try:
+            hmm = HMMSentiment.load(MODELS.hmm_model)
+            logger.info("Loaded trained HMM model")
+        except FileNotFoundError:
+            logger.warning("HMM model not found, using unfitted instance")
+            hmm = HMMSentiment()
         summarizer = LLMSummarizer()
 
         # Try to create TermFilter, fallback to None if AWS not configured
