@@ -555,7 +555,21 @@ def run_pipeline_and_display(
     # 6. LLM Summary
     with st.container():
         st.subheader("6. Summary (LLM)")
+
+        # Main summary
         st.markdown(result.llm_summary)
+
+        # Key themes (if available)
+        if result.llm_themes:
+            st.markdown("**Key Themes:**")
+            for theme in result.llm_themes:
+                st.markdown(f"- {theme}")
+
+        # Representative quotes (if available)
+        if result.llm_quotes:
+            st.markdown("**Representative Quotes:**")
+            for quote in result.llm_quotes:
+                st.markdown(f'> "{quote}"')
 
 
 if __name__ == "__main__":
