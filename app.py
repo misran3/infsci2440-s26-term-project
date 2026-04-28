@@ -284,7 +284,15 @@ def _show_topic_distribution_chart(distribution: dict[str, int]) -> None:
         sorted(distribution.items(), key=lambda x: x[1], reverse=True),
         columns=["Topic", "Count"],
     )
-    st.bar_chart(df, x="Topic", y="Count")
+
+    chart = alt.Chart(df).mark_bar(color="#2c5282").encode(
+        x=alt.X("Count:Q", title="Count"),
+        y=alt.Y("Topic:N", sort="-x", title=""),
+        tooltip=["Topic", "Count"]
+    ).properties(
+        height=150
+    )
+    st.altair_chart(chart, use_container_width=False)
 
 
 def _sentiment_to_emoji(sentiment) -> str:
