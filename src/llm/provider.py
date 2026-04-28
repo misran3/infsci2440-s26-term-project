@@ -108,10 +108,10 @@ def get_model():
     provider = get_provider()
 
     if provider == LLMProvider.OPENAI:
-        from pydantic_ai.models.openai import OpenAIModel
+        from pydantic_ai.models.openai import OpenAIChatModel
 
         model_name = os.getenv("OPENAI_MODEL", _DEFAULT_MODELS[LLMProvider.OPENAI])
-        return OpenAIModel(model_name)
+        return OpenAIChatModel(model_name)
 
     from pydantic_ai.models.bedrock import BedrockConverseModel
 
