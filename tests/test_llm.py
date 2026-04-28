@@ -1,6 +1,9 @@
 """Tests for LLM summarizer with fallback behavior."""
 
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+import pytest
 
 from src.loaders.structures import BayesianInsights, Review, SentimentSequence, Topic
 from src.reasoning.llm_summarizer import LLMSummarizer
@@ -16,14 +19,16 @@ def _insights() -> BayesianInsights:
 	)
 
 
-def test_summarize_no_reviews_returns_no_match_message():
+@pytest.mark.asyncio
+async def test_summarize_no_reviews_returns_no_match_message():
 	"""No reviews should produce a clear no-results summary."""
 	summarizer = LLMSummarizer()
-	text = summarizer.summarize([], _insights(), [])
+	text = await summarizer.summarize([], _insights(), [])
 	assert "No matching reviews found" in text
 
 
-def test_summarize_fallback_contains_key_stats():
+@pytest.mark.asyncio
+async def test_summarize_fallback_contains_key_stats():
 	"""Fallback summary should include count/topic/probability information."""
 	summarizer = LLMSummarizer()
 	reviews = [
@@ -35,44 +40,43 @@ def test_summarize_fallback_contains_key_stats():
 		SentimentSequence("2", ["Works perfectly"], [], {}),
 	]
 
-	text = summarizer.summarize(reviews, _insights(), sequences)
+	text = await summarizer.summarize(reviews, _insights(), sequences)
 
 	assert "Analyzed 2 reviews" in text
 	assert "performance" in text
 	assert "P(positive|topic)" in text
 
 
-def test_summarize_uses_agent_when_available():
+@pytest.mark.asyncio
+async def test_summarize_uses_agent_when_available():
 	"""When agent exists and succeeds, summary should come from agent output."""
 	summarizer = LLMSummarizer()
 	summarizer._agent_init_attempted = True
-	summarizer.agent = SimpleNamespace(
-		run_sync=lambda _: SimpleNamespace(
-			output=SimpleNamespace(
-				summary="LLM summary",
-				key_themes=["theme1", "theme2"],
-				representative_quotes=["quote1"],
-			)
+
+	mock_result = SimpleNamespace(
+		output=SimpleNamespace(
+			summary="LLM summary",
+			key_themes=["theme1", "theme2"],
+			representative_quotes=["quote1"],
 		)
 	)
+	summarizer.agent = SimpleNamespace(run=AsyncMock(return_value=mock_result))
 
-	text = summarizer.summarize([Review("1", "Text", 4, "T", "P")], _insights(), [])
+	text = await summarizer.summarize([Review("1", "Text", 4, "T", "P")], _insights(), [])
 
 	assert text == "LLM summary"
 	assert summarizer.last_themes == ["theme1", "theme2"]
 	assert summarizer.last_quotes == ["quote1"]
 
 
-def test_summarize_agent_failure_uses_error_fallback():
+@pytest.mark.asyncio
+async def test_summarize_agent_failure_uses_error_fallback():
 	"""Agent exceptions should produce graceful fallback text."""
 	summarizer = LLMSummarizer()
 	summarizer._agent_init_attempted = True
 
-	def _boom(_: str):
-		raise RuntimeError("API down")
-
-	summarizer.agent = SimpleNamespace(run_sync=_boom)
-	text = summarizer.summarize([Review("1", "Text", 2, "T", "P")], _insights(), [])
+	summarizer.agent = SimpleNamespace(run=AsyncMock(side_effect=RuntimeError("API down")))
+	text = await summarizer.summarize([Review("1", "Text", 2, "T", "P")], _insights(), [])
 
 	assert "AI-generated summary unavailable" in text
 

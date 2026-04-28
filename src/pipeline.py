@@ -88,7 +88,7 @@ class SurveyAnalysisPipeline:
         sequences = self.components.hmm.analyze(reviews_for_analysis)
 
         # 7. LLM summary (Person 3 - stub)
-        summary = self.components.summarizer.summarize(
+        summary = await self.components.summarizer.summarize(
             reviews_for_analysis, insights, sequences
         )
 

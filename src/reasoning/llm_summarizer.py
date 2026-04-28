@@ -90,7 +90,7 @@ class LLMSummarizer:
             f"Average sentiment-sequence length is {avg_sentences:.1f} sentences."
         )
 
-    def summarize(
+    async def summarize(
         self,
         reviews: list[Review],
         insights: BayesianInsights,
@@ -129,7 +129,7 @@ class LLMSummarizer:
         )
 
         try:
-            result = self.agent.run_sync(prompt)
+            result = await self.agent.run(prompt)
             output = result.output
             self.last_themes = output.key_themes
             self.last_quotes = output.representative_quotes

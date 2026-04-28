@@ -80,7 +80,7 @@ def display_model_metadata(metadata: dict[str, dict]) -> None:
             trained_times.append(meta["trained_at"])
 
     df = pd.DataFrame(rows)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width='stretch', hide_index=True)
 
     if trained_times:
         latest = max(trained_times)
