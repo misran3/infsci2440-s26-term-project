@@ -143,3 +143,43 @@ def test_save_creates_parent_directories():
 		bn.save(path)
 
 		assert path.exists()
+
+
+def test_save_and_load_with_metadata():
+	"""Saved model should include and restore metadata."""
+	bn = BayesianNetwork()
+	bn.fit(_reviews())
+
+	metadata = {
+		"trained_at": "2026-04-28T10:00:00",
+		"data_source": "curated_labels.csv",
+		"corpus_size": 4,
+		"params": {"structure": [["topic", "sentiment"], ["sentiment", "rating_category"]]},
+		"metrics": {"n_cpds": 3},
+	}
+
+	with tempfile.TemporaryDirectory() as tmpdir:
+		path = Path(tmpdir) / "model.pkl"
+		bn.save(path, metadata=metadata)
+
+		loaded_bn = BayesianNetwork.load(path)
+		assert hasattr(loaded_bn, "metadata")
+		assert loaded_bn.metadata["corpus_size"] == 4
+		assert loaded_bn.metadata["trained_at"] == "2026-04-28T10:00:00"
+
+
+def test_load_without_metadata_returns_empty_metadata():
+	"""Old model files without metadata should load with empty metadata dict."""
+	import joblib
+
+	bn = BayesianNetwork()
+	bn.fit(_reviews())
+
+	with tempfile.TemporaryDirectory() as tmpdir:
+		path = Path(tmpdir) / "old_model.pkl"
+		# Save in old format (raw model, no metadata wrapper)
+		joblib.dump(bn.model, path)
+
+		loaded_bn = BayesianNetwork.load(path)
+		assert hasattr(loaded_bn, "metadata")
+		assert loaded_bn.metadata == {}

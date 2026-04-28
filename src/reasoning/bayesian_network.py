@@ -147,11 +147,12 @@ class BayesianNetwork:
             p_low_rating_given_negative=p_low_given_neg,
         )
 
-    def save(self, path: str | Path) -> None:
+    def save(self, path: str | Path, metadata: dict | None = None) -> None:
         """Save the fitted model to disk.
 
         Args:
             path: File path to save the model to.
+            metadata: Optional training metadata to embed.
 
         Raises:
             RuntimeError: If the model has not been fitted.
@@ -160,7 +161,13 @@ class BayesianNetwork:
             raise RuntimeError("Cannot save unfitted BayesianNetwork")
 
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        joblib.dump(self.model, path)
+        joblib.dump(
+            {
+                "model": self.model,
+                "metadata": metadata or {},
+            },
+            path,
+        )
 
     @classmethod
     def load(cls, path: str | Path) -> "BayesianNetwork":
@@ -175,19 +182,35 @@ class BayesianNetwork:
         Raises:
             ValueError: If the loaded object is not a valid pgmpy DiscreteBayesianNetwork.
         """
-        loaded = joblib.load(path)
-        if not isinstance(loaded, PgmpyBN):
+        data = joblib.load(path)
+
+        # Handle old format (raw model) vs new format (dict with model + metadata)
+        if isinstance(data, PgmpyBN):
+            # Old format: raw pgmpy model
+            model = data
+            metadata = {}
+        elif isinstance(data, dict) and "model" in data:
+            # New format: dict with model and metadata
+            model = data["model"]
+            metadata = data.get("metadata", {})
+        else:
             raise ValueError(
-                f"Invalid model type: expected DiscreteBayesianNetwork, got {type(loaded).__name__}"
+                f"Invalid model type: expected DiscreteBayesianNetwork or dict, got {type(data).__name__}"
+            )
+
+        if not isinstance(model, PgmpyBN):
+            raise ValueError(
+                f"Invalid model type: expected DiscreteBayesianNetwork, got {type(model).__name__}"
             )
 
         # Verify model has fitted CPDs
-        cpds = loaded.get_cpds()
+        cpds = model.get_cpds()
         if not cpds or not all(isinstance(cpd, TabularCPD) for cpd in cpds):
             raise ValueError("Loaded model does not have valid fitted CPDs")
 
         instance = cls()
-        instance.model = loaded
+        instance.model = model
         instance._inference = VariableElimination(instance.model)
         instance._is_fitted = True
+        instance.metadata = metadata
         return instance
