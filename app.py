@@ -246,6 +246,23 @@ def _show_topic_distribution_chart(distribution: dict[str, int]) -> None:
     st.bar_chart(df, x="Topic", y="Count")
 
 
+def _sentiment_to_emoji(sentiment) -> str:
+    """Map sentiment state to colored emoji."""
+    mapping = {
+        "positive": "🟢",
+        "negative": "🔴",
+        "neutral": "🟡",
+    }
+    return mapping.get(sentiment.value if hasattr(sentiment, 'value') else str(sentiment), "⚪")
+
+
+def _rating_to_stars(rating: int) -> str:
+    """Convert numeric rating to star display."""
+    filled = "★" * rating
+    empty = "☆" * (5 - rating)
+    return filled + empty
+
+
 def _aggregate_hmm_transitions(sequences: list) -> pd.DataFrame:
     """Aggregate transition probabilities across all sequences into a matrix."""
     if not sequences:
@@ -511,6 +528,29 @@ def run_pipeline_and_display(
                 )
 
                 st.altair_chart(heatmap + text, use_container_width=True)
+
+            # Sample reviews with sentiment timeline
+            multi_sentence = [s for s in valid_sequences if len(s.sentences) > 1][:5]
+            if multi_sentence:
+                with st.expander(f"Sample Reviews ({len(multi_sentence)})"):
+                    for seq in multi_sentence:
+                        # Find matching review for rating
+                        matching_review = next(
+                            (r for r in result.filtered_reviews if r.review_id == seq.review_id),
+                            None
+                        )
+                        rating_str = _rating_to_stars(matching_review.rating) if matching_review else ""
+
+                        # Truncate text
+                        review_text = matching_review.text if matching_review else ""
+                        truncated = review_text[:100] + "..." if len(review_text) > 100 else review_text
+
+                        # Sentiment timeline
+                        timeline = "".join(_sentiment_to_emoji(s) for s in seq.sentiment_states)
+
+                        st.markdown(f'"{truncated}" {rating_str}')
+                        st.caption(f"Sentiment flow: {timeline}")
+                        st.markdown("---")
 
     # 6. LLM Summary
     with st.container():
