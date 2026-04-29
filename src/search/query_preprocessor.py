@@ -45,19 +45,20 @@ class QueryPreprocessor:
     def _looks_like_natural_language(self, query: str) -> bool:
         """Heuristic check if query is natural language vs keywords."""
         query_lower = query.lower().strip()
+        words = query_lower.split()
 
         question_words = (
             "how", "what", "why", "when", "where", "who", "which",
             "is", "are", "do", "does", "can", "could", "would", "should"
         )
-        if query_lower.startswith(question_words):
+        first_word = words[0] if words else ""
+        if first_word in question_words:
             return True
 
         if "?" in query:
             return True
 
         nl_markers = ("the", "a", "an", "about", "think", "feel", "mentioned", "said")
-        words = query_lower.split()
         if len(words) > 4 and any(w in nl_markers for w in words):
             return True
 

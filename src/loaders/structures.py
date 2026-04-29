@@ -78,6 +78,14 @@ class SentimentSequence:
 
 
 @dataclass(frozen=True)
+class PreprocessedQuery:
+    """Result of query preprocessing."""
+    original_query: str
+    extracted_keywords: list[str]
+    was_preprocessed: bool
+
+
+@dataclass(frozen=True)
 class PipelineResult:
     """Final result passed to LLM and UI."""
     query: str
@@ -101,11 +109,3 @@ class FilterResult:
     classifications: list[TopicClassification]
     topic_distribution: dict[str, int]
     fallback_used: bool
-
-
-@dataclass(frozen=True)
-class PreprocessedQuery:
-    """Result of query preprocessing."""
-    original_query: str
-    extracted_keywords: list[str]
-    was_preprocessed: bool
