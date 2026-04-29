@@ -19,6 +19,7 @@ from src.reasoning.bayesian_network import BayesianNetwork
 from src.reasoning.hmm_sentiment import HMMSentiment
 from src.reasoning.llm_summarizer import LLMSummarizer
 from src.search.beam_search import BeamSearchExpander
+from src.search.query_preprocessor import QueryPreprocessor
 from src.search.term_filter import TermFilter
 from src.search.tfidf_retriever import TFIDFRetriever
 
@@ -184,6 +185,8 @@ def load_pipeline() -> tuple[SurveyAnalysisPipeline, dict[str, dict]]:
             logger.warning(f"TermFilter unavailable: {e}")
             term_filter = None
 
+        preprocessor = QueryPreprocessor()
+
         components = PipelineComponents(
             expander=expander,
             retriever=retriever,
@@ -192,6 +195,7 @@ def load_pipeline() -> tuple[SurveyAnalysisPipeline, dict[str, dict]]:
             hmm=hmm,
             summarizer=summarizer,
             term_filter=term_filter,
+            preprocessor=preprocessor,
         )
 
         return SurveyAnalysisPipeline(components), metadata
@@ -370,6 +374,14 @@ def _display_llm_summary_card(result) -> None:
 
 def _display_query_expansion_card(result, pipeline) -> None:
     """Display Query Expansion card content."""
+    # Show preprocessing if it happened
+    if result.preprocessed and result.preprocessed.was_preprocessed:
+        st.markdown("#### Query Preprocessing")
+        st.markdown("**Natural Language Query Detected**")
+        st.markdown(f"**Original:** `{result.preprocessed.original_query}`")
+        st.markdown(f"**Extracted Keywords:** `{', '.join(result.preprocessed.extracted_keywords)}`")
+        st.divider()
+
     st.markdown("#### Query Expansion")
     st.markdown(f"**Original:** `{result.expansion.original_query}`")
     st.markdown(f"**BeamSearch:** {len(result.expansion.expanded_terms)} terms")

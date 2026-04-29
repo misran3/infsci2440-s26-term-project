@@ -78,6 +78,14 @@ class SentimentSequence:
 
 
 @dataclass(frozen=True)
+class PreprocessedQuery:
+    """Result of query preprocessing."""
+    original_query: str
+    extracted_keywords: list[str]
+    was_preprocessed: bool
+
+
+@dataclass(frozen=True)
 class PipelineResult:
     """Final result passed to LLM and UI."""
     query: str
@@ -91,6 +99,7 @@ class PipelineResult:
     llm_summary: str
     llm_themes: list[str] | None = None
     llm_quotes: list[str] | None = None
+    preprocessed: PreprocessedQuery | None = None
 
 
 @dataclass(frozen=True)
