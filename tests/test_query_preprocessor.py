@@ -1,9 +1,9 @@
 """Unit tests for QueryPreprocessor."""
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock, MagicMock
 
-from src.search.query_preprocessor import QueryPreprocessor
+from src.search.query_preprocessor import QueryPreprocessor, ExtractedKeywords
 
 
 class TestNaturalLanguageDetection:
@@ -76,3 +76,28 @@ class TestPreprocessFallback:
 
         assert result.was_preprocessed is False
         assert "crashes" in result.extracted_keywords or "crashes?" in result.extracted_keywords
+
+
+class TestPreprocessWithMockedLLM:
+    """Tests for preprocessing with mocked LLM responses."""
+
+    @pytest.mark.asyncio
+    async def test_llm_extracts_keywords(self) -> None:
+        """LLM extraction returns expanded keywords."""
+        mock_output = MagicMock()
+        mock_output.output = ExtractedKeywords(
+            keywords=["app", "crash", "bug", "error", "freeze"]
+        )
+
+        mock_agent = AsyncMock()
+        mock_agent.run = AsyncMock(return_value=mock_output)
+
+        with patch("src.search.query_preprocessor.get_agent", return_value=mock_agent):
+            qp = QueryPreprocessor()
+            result = await qp.preprocess("How many people mentioned the app crashes?")
+
+            assert result.was_preprocessed is True
+            assert "app" in result.extracted_keywords
+            assert "crash" in result.extracted_keywords
+            assert "bug" in result.extracted_keywords
+            assert len(result.extracted_keywords) == 5
